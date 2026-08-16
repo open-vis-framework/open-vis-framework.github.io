@@ -8,6 +8,8 @@ on:
       - "packages/**"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+      - "docker-compose.yml"
+      - ".dockerignore"
       - ".github/workflows/deploy-platform.yml"
   workflow_dispatch:
 
@@ -22,14 +24,12 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             set -e
-            export NVM_DIR="$HOME/.nvm"
-            . "$NVM_DIR/nvm.sh"
-            nvm use 22
             cd ~/open-vis-framework-src
             git fetch origin main
             git reset --hard origin/main
-            pnpm install --frozen-lockfile
-            # Turbopack (the default `build` script) needs a newer glibc
-            # than this server has — see docs/adr/0002-self-hosted-platform.md
-            pnpm --filter platform run build:webpack
-            /home/admin/.nvm/versions/node/v16.18.0/bin/pm2 restart open-vis-framework --update-env
+            # docker-compose.yml is the single source of truth (see
+            # docs/adr/0003-dockerize-same-server.md) - no Node/pnpm on
+            # the host needed for any of this, migrations included.
+            docker compose --env-file apps/platform/.env build
+            docker compose --env-file apps/platform/.env --profile tools run --rm migrate
+            docker compose --env-file apps/platform/.env up -d
