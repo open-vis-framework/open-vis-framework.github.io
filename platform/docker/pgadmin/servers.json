@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "open-vis-framework-db",
+      "Group": "Servers",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "open-vis-framework",
+      "SSLMode": "prefer"
+    }
+  }
+}

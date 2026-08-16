@@ -1,15 +1,85 @@
 # Roadmap
 
-Living plan for `apps/platform`. This is the document to read first if you're
-picking this project up cold (fresh clone, new agent session) — the ADRs in
-`docs/adr/` explain *why* each decision was made; this is *what's done and
-what's next*, kept up to date as phases land.
+Living plan for the product backend. This is the document to read first if
+you're picking this project up cold (fresh clone, new agent session) — the
+ADRs in `docs/adr/` explain *why* each decision was made; this is *what's
+done and what's next*, kept up to date as phases land.
 
-Current phase: **shipped and live** at `https://open-vis-framework.duckdns.org`.
-See `docs/adr/0003-dockerize-same-server.md` for the deploy architecture and
-`docs/adr/0004-visualization-sheets.md` for the data model.
+Current phase: **migrating from `apps/platform` (Next.js) to `platform/`
+(InvenioRDM)** — see `docs/adr/0005-adopt-inveniordm.md` for why. The old
+Next.js app remains live at `https://open-vis-framework.duckdns.org` and
+gets bug fixes only until cutover (Migration Phase 8 below); no new
+features land on it. "Phases 0-9" below are the completed history of that
+app, kept for context; "Migration Phase N" is the current work.
 
-## Phases
+## InvenioRDM migration (current work — see ADR 0005)
+
+- [x] **Migration Phase 0 — Docs**: this section, ADR 0005, `CLAUDE.md`
+      layout update.
+- [x] **Migration Phase 1 — Local scaffold** (go/no-go gate, passed):
+      `invenio-cli init rdm` into `platform/`, `invenio-cli install`,
+      `invenio-cli services setup` + `invenio-cli run` locally with demo
+      data — serving at `https://127.0.0.1:5000`. Toolchain installed via
+      Homebrew: Python 3.14, `uv`, `pipx`, Node 24 (kept keg-only/unlinked
+      — doesn't affect `apps/*`'s pinned Node 22 via `.nvmrc`),
+      ImageMagick. Two real bugs hit and fixed: (1) InvenioRDM's Postgres
+      wants host port 5432, already held by `apps/platform`'s local dev
+      Postgres — Compose created the container but silently never bound
+      the host port (no error, just a hang); remapped to 5433 in
+      `platform/docker-services.yml` + `platform/invenio.cfg`. (2) The
+      cookiecutter scaffolds into a dir named after `project_shortname`,
+      not `platform/` — after the rename, `platform/docker/pgadmin/servers.json`
+      referenced a stale container name; fixed to use the stable Compose
+      service alias (`db`).
+- [x] **Migration Phase 2 — Server proof-of-concept** (go/no-go gate,
+      passed): full InvenioRDM stack (db/cache/mq/search/web-ui/web-api/
+      worker/scheduler — 8 containers, `frontend`/pgadmin/flower/
+      opensearch-dashboards skipped as non-essential for this check) built
+      and run on the production server via `docker-compose.full.yml`,
+      routed through Traefik on a scratch subdomain
+      (`ovf-invenio.duckdns.org`, real Let's Encrypt cert via the existing
+      acme.sh/DuckDNS setup — see `docs/ops/access.md`). Resource
+      footprint: ~4.4GB/11GB RAM used total (alongside `apps/platform` +
+      the 3 unrelated projects), ~3.2GB attributable to the Invenio stack
+      itself (search/worker are the heaviest at ~1GB+ each) — comfortable
+      headroom. All 4 other live domains spot-checked unaffected after
+      both the container startup and the Traefik config edit. Confirmed
+      `SITE_UI_URL`/`TRUSTED_HOSTS`/`PROXYFIX_CONFIG` correctly produce
+      HTTPS-aware redirects/cookies (`Set-Cookie: ...; Secure`) behind
+      Traefik. One real finding: the cookiecutter's uwsgi services default
+      to the binary uwsgi protocol (`socket = ...`), meant to sit behind
+      the bundled nginx `frontend` (which speaks `uwsgi_pass`) — routing
+      Traefik directly to the app container needed `http-socket` instead.
+      This POC therefore has no static-asset styling (nginx normally
+      serves `/static`) and no `/api` path-split routing — both explicitly
+      deferred to **Migration Phase 7**, which needs to decide for real
+      whether the production deploy keeps nginx-in-front (full fidelity,
+      more moving parts) or goes Traefik-direct like this POC (simpler,
+      needs its own static-serving + `/api` routing answer). POC is left
+      running for now — see `docs/ops/access.md` for teardown notes when
+      it's no longer needed.
+- [ ] **Migration Phase 3 — Visualization Sheet metadata mapping**: ADR
+      0004's six sections → InvenioRDM native fields + `ovf:*` custom
+      fields; native file uploads for the file case.
+- [ ] **Migration Phase 4 — Auth**: `invenio-oauthclient` for Google,
+      GitHub, ORCID. New OAuth app registrations needed (see
+      `docs/ops/access.md`).
+- [ ] **Migration Phase 5 — Branding/UI**: default Invenio theme first;
+      functional correctness, not visual parity with the old Tailwind UI.
+- [ ] **Migration Phase 6 — Search & browse**: native OpenSearch-backed
+      facets (license, AI involvement, keywords) replacing the old
+      `ilike` browse query.
+- [ ] **Migration Phase 7 — Deploy pipeline**: new GitHub Actions workflow
+      for `platform/`'s heavier Docker build.
+- [ ] **Migration Phase 8 — Cutover & retirement**: flip Traefik, delete
+      `apps/platform`, update `pnpm-workspace.yaml`/`turbo.json`/`ci.yml`,
+      mark ADR 0002/0003/0004 fully superseded.
+
+No data migration needed — only test/seed data exists in `sheets` today
+(confirmed before starting this migration), so cutover is a clean
+replacement, not a backfill.
+
+## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
 - [x] **Phase 0 — Docs**: this file, ADR 0003, `docs/ops/access.md`.
 - [x] **Phase 1 — Verify Docker installs on the existing server** (go/no-go

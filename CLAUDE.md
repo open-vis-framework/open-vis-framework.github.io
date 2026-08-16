@@ -7,15 +7,21 @@ Monorepo, managed with **pnpm workspaces** + **Turborepo**. See
 
 - `apps/web` — public landing/docs site. Static export, deploys to
   **GitHub Pages**. No backend, no accounts, no server code belongs here.
-- `apps/platform` — the product (browse/submit/moderate visualization
-  projects). Server-rendered Next.js, deploys to a **self-hosted server**
-  (pm2 + an existing shared Traefik instance) via SSH from GitHub Actions.
-  See `docs/adr/0002-self-hosted-platform.md`. This is where auth,
-  database, and upload logic will live once built.
-  - The server's OS has an old glibc that can't run Next's default
-    Turbopack build — use `pnpm --filter platform run build:webpack`
-    there specifically. CI/Vercel-style/local builds keep using the
-    normal `build` script (Turbopack, faster) — don't change the default.
+- `apps/platform` — **being retired**, see `docs/adr/0005-adopt-inveniordm.md`.
+  Currently still the live product (browse/submit visualization sheets):
+  server-rendered Next.js + Drizzle/Postgres + Auth.js, deploys to a
+  **self-hosted server** via Docker Compose over SSH from GitHub Actions
+  (`docs/adr/0002-self-hosted-platform.md`, `docs/adr/0003-dockerize-same-server.md`).
+  Do not add new features here — it's mid-migration to InvenioRDM and will
+  be deleted at cutover (ADR 0005 Phase 8). Bug fixes only.
+- `platform/` — the product's future home: an **InvenioRDM** instance
+  (Python/Flask, not part of the pnpm workspace — scaffolded via
+  `invenio-cli`). Doesn't exist yet until ADR 0005 Phase 1 lands; see that
+  ADR and `docs/ROADMAP.md` for the phased rollout plan and current
+  status. Once cutover happens, this replaces `apps/platform` above and
+  this section gets rewritten to describe it properly (own commands, own
+  conventions — expect an `AGENTS.md`/`CLAUDE.md` inside it once real,
+  matching the `apps/*` pattern).
 - `packages/*` — shared code (UI components, types, config). Doesn't exist
   yet; only add a package here once ≥2 apps actually need to share it.
 - `docs/adr/` — architecture decision records. Add one for any decision
