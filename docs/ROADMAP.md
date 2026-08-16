@@ -75,17 +75,41 @@ app, kept for context; "Migration Phase N" is the current work.
       and real validation are explicitly deferred to a later, non-
       placeholder pass over this same file - see the TODO at the top of
       `custom_fields.py`.
-- [ ] **Migration Phase 4 — Auth** — *skipped for now* (explicit call,
-      revisit before Migration Phase 8 cutover; `invenio-oauthclient`
-      for Google, GitHub, ORCID, new OAuth app registrations needed —
-      see `docs/ops/access.md`).
-- [ ] **Migration Phase 5 — Branding/UI**: default Invenio theme first;
-      functional correctness, not visual parity with the old Tailwind UI.
-- [ ] **Migration Phase 6 — Search & browse**: native OpenSearch-backed
-      facets (license, AI involvement, keywords) replacing the old
-      `ilike` browse query.
-- [ ] **Migration Phase 7 — Deploy pipeline**: new GitHub Actions workflow
-      for `platform/`'s heavier Docker build.
+- [x] **Migration Phase 4 — Auth** (partial, by explicit direction): OAuth
+      (Google/GitHub/ORCID via `invenio-oauthclient`) skipped for now —
+      needs external OAuth app registrations, revisit before Migration
+      Phase 8 cutover (see `docs/ops/access.md`). Instead, one local-login
+      test account was created (InvenioRDM's local login was already
+      enabled by default - `ACCOUNTS_LOCAL_LOGIN_ENABLED = True` in
+      `invenio.cfg`, no new code): `admin@example.com` / `admin123`
+      (InvenioRDM enforces a 6-char password minimum, so not literally
+      "admin"/"admin"), granted the `admin` role. Created on both the
+      local dev instance and the server POC via `invenio users create`
+      + `invenio roles add`. Not meant to survive past this dev/testing
+      period - revisit alongside real Phase 4 auth work.
+- [x] **Migration Phase 5 — Branding/UI**: already satisfied by the
+      cookiecutter's own defaults - `THEME_SITENAME`/`THEME_FRONTPAGE_TITLE`
+      in `invenio.cfg` are set to "Open Vis Framework" from the `invenio-cli
+      init` prompts (Phase 1). No further work done: still the default
+      Invenio theme/layout, functionally correct per this phase's
+      original scope, not a visual redesign - that's a separate,
+      explicitly-deferred follow-up, not blocking anything else.
+- [ ] **Migration Phase 6 — Search & browse** — *skipped for now*
+      (explicit call). Native OpenSearch-backed faceting (license, AI
+      involvement, keywords) replacing the old `ilike` browse query is
+      still the eventual plan; revisit after the placeholder custom
+      fields from Migration Phase 3 get their real (non-placeholder)
+      pass, since facet quality depends on that.
+- [x] **Migration Phase 7 — Deploy pipeline**: `.github/workflows/deploy-platform-invenio.yml`
+      — mirrors the existing `deploy-platform.yml` SSH+Compose pattern.
+      Deliberately targets the same scratch POC path/domain
+      (`~/ovf-invenio-poc/`, `ovf-invenio.duckdns.org`) used in Migration
+      Phase 2, not the real production domain — repointing it to replace
+      `apps/platform` for real is Migration Phase 8's job, not this one.
+      Triggers on push to `main` touching `platform/**` (won't fire until
+      this branch is actually merged) plus `workflow_dispatch`. Not yet
+      tested end-to-end (no push to `main` has happened) - first real run
+      will be either a manual dispatch or whenever this branch merges.
 - [ ] **Migration Phase 8 — Cutover & retirement**: flip Traefik, delete
       `apps/platform`, update `pnpm-workspace.yaml`/`turbo.json`/`ci.yml`,
       mark ADR 0002/0003/0004 fully superseded.
