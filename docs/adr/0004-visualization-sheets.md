@@ -1,7 +1,12 @@
 # ADR 0004: Visualization Sheets replace generic "artifacts"
 
-- Status: accepted
+- Status: superseded
 - Date: 2026-08-16
+- Superseded by `docs/adr/0005-adopt-inveniordm.md`: the Drizzle schema
+  described below is retired at cutover to InvenioRDM. The six-section
+  taxonomy (core metadata, visualization itself, data provenance, visual
+  encoding & design, AI involvement, limitations) carries over
+  conceptually, re-expressed as InvenioRDM native fields + custom fields.
 
 ## Context
 

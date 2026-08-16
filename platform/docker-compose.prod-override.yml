@@ -1,0 +1,30 @@
+# Production override for docker-compose.full.yml - the real cutover
+# target (open-vis-framework.duckdns.org), replacing apps/platform.
+# See docs/adr/0005-adopt-inveniordm.md and docs/ROADMAP.md Migration
+# Phase 8.
+#
+# KNOWN GAP, accepted deliberately at cutover time (see ROADMAP): this
+# does NOT override SECRET_KEY - still docker-services.yml's CHANGE_ME
+# placeholder. Follow-up work, not blocking this cutover.
+#
+# Usage: docker compose --file docker-compose.full.yml --file docker-compose.prod-override.yml up -d ...
+
+services:
+  web-ui:
+    environment:
+      - "INVENIO_SITE_UI_URL=https://open-vis-framework.duckdns.org"
+      - "INVENIO_SITE_API_URL=https://open-vis-framework.duckdns.org/api"
+      - "INVENIO_TRUSTED_HOSTS=['open-vis-framework.duckdns.org','127.0.0.1','localhost','0.0.0.0']"
+  web-api:
+    environment:
+      - "INVENIO_SITE_UI_URL=https://open-vis-framework.duckdns.org"
+      - "INVENIO_SITE_API_URL=https://open-vis-framework.duckdns.org/api"
+      - "INVENIO_TRUSTED_HOSTS=['open-vis-framework.duckdns.org','127.0.0.1','localhost','0.0.0.0']"
+  worker:
+    environment:
+      - "INVENIO_SITE_UI_URL=https://open-vis-framework.duckdns.org"
+      - "INVENIO_SITE_API_URL=https://open-vis-framework.duckdns.org/api"
+  scheduler:
+    environment:
+      - "INVENIO_SITE_UI_URL=https://open-vis-framework.duckdns.org"
+      - "INVENIO_SITE_API_URL=https://open-vis-framework.duckdns.org/api"

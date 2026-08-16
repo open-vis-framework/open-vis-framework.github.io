@@ -17,6 +17,31 @@ live" below).
 (free DuckDNS domain — swap for a real domain later if desired; DNS is
 managed via the DuckDNS account, see below).
 
+**InvenioRDM migration POC** (see `docs/adr/0005-adopt-inveniordm.md`,
+ROADMAP Migration Phase 2): a scratch proof-of-concept stack is also
+running on this same server, reachable at `https://ovf-invenio.duckdns.org`.
+Not linked from anywhere, not production, no real data — exists to
+validate resource footprint and Traefik/reverse-proxy behavior before
+committing further to the InvenioRDM migration. Artifacts left on the
+server: `~/ovf-invenio-poc/` (app source + certs), a `ovf-invenio-poc`
+router/service/cert entry appended to
+`/home/admin/mlg/mlg-traefik/config.yaml`, and a Let's Encrypt cert via
+acme.sh (same DuckDNS account token, no new credential). Uses uwsgi's
+plain `http-socket` mode (not the `socket` uwsgi-protocol default,
+which needs nginx in front to translate) since Traefik is routed
+directly to the app container, bypassing the cookiecutter's nginx
+`frontend` service entirely — static assets are unstyled as a result,
+which is expected and untested by design here (Phase 5 handles real
+branding/UI). **Tear this POC down** (stop the containers, remove the
+Traefik entries, `docker compose down -v`) once Phase 2's evaluation is
+complete, whichever way it goes — it's not meant to be long-lived.
+
+A new SSH key (`ovf_deploy`, ed25519, no passphrase) was generated
+during this migration to replace an earlier interactive key that was no
+longer accessible locally; same purpose/name/revocation process as
+described below, only the actual keypair differs from whenever this doc
+was first written.
+
 ## SSH keys in use
 
 | Key name (local) | Purpose | Where it's used |

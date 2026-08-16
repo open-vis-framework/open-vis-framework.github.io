@@ -4,7 +4,9 @@ packages:
 
 # Packages that ship native build scripts. pnpm blocks these by default
 # (supply-chain safety); we keep them disabled until something actually
-# needs them (e.g. `sharp` for image processing in apps/platform).
+# needs them. (apps/platform, which used sharp, was retired - see
+# docs/adr/0005-adopt-inveniordm.md - but leaving these disabled by
+# default is still the right posture for whatever's added next.)
 allowBuilds:
   # drizzle-kit's CLI uses esbuild internally (TS config loading /
   # migration tooling); its install script just fetches a prebuilt

@@ -1,15 +1,142 @@
 # Roadmap
 
-Living plan for `apps/platform`. This is the document to read first if you're
-picking this project up cold (fresh clone, new agent session) — the ADRs in
-`docs/adr/` explain *why* each decision was made; this is *what's done and
-what's next*, kept up to date as phases land.
+Living plan for the product backend. This is the document to read first if
+you're picking this project up cold (fresh clone, new agent session) — the
+ADRs in `docs/adr/` explain *why* each decision was made; this is *what's
+done and what's next*, kept up to date as phases land.
 
-Current phase: **shipped and live** at `https://open-vis-framework.duckdns.org`.
-See `docs/adr/0003-dockerize-same-server.md` for the deploy architecture and
-`docs/adr/0004-visualization-sheets.md` for the data model.
+Current phase: **cut over to `platform/` (InvenioRDM)** — see
+`docs/adr/0005-adopt-inveniordm.md` for why. The old Next.js
+`apps/platform` app has been deleted (Migration Phase 8); its history is
+kept below ("Phases 0-9") for context, same as ADR 0004 did for the
+schema it replaced. Known-incomplete right now: no OAuth (local login
+only), no search facets (Migration Phases 4 and 6 were both explicitly
+skipped/deferred) - see those phases below for what to pick up.
 
-## Phases
+## InvenioRDM migration (current work — see ADR 0005)
+
+- [x] **Migration Phase 0 — Docs**: this section, ADR 0005, `CLAUDE.md`
+      layout update.
+- [x] **Migration Phase 1 — Local scaffold** (go/no-go gate, passed):
+      `invenio-cli init rdm` into `platform/`, `invenio-cli install`,
+      `invenio-cli services setup` + `invenio-cli run` locally with demo
+      data — serving at `https://127.0.0.1:5000`. Toolchain installed via
+      Homebrew: Python 3.14, `uv`, `pipx`, Node 24 (kept keg-only/unlinked
+      — doesn't affect `apps/*`'s pinned Node 22 via `.nvmrc`),
+      ImageMagick. Two real bugs hit and fixed: (1) InvenioRDM's Postgres
+      wants host port 5432, already held by `apps/platform`'s local dev
+      Postgres — Compose created the container but silently never bound
+      the host port (no error, just a hang); remapped to 5433 in
+      `platform/docker-services.yml` + `platform/invenio.cfg`. (2) The
+      cookiecutter scaffolds into a dir named after `project_shortname`,
+      not `platform/` — after the rename, `platform/docker/pgadmin/servers.json`
+      referenced a stale container name; fixed to use the stable Compose
+      service alias (`db`).
+- [x] **Migration Phase 2 — Server proof-of-concept** (go/no-go gate,
+      passed): full InvenioRDM stack (db/cache/mq/search/web-ui/web-api/
+      worker/scheduler — 8 containers, `frontend`/pgadmin/flower/
+      opensearch-dashboards skipped as non-essential for this check) built
+      and run on the production server via `docker-compose.full.yml`,
+      routed through Traefik on a scratch subdomain
+      (`ovf-invenio.duckdns.org`, real Let's Encrypt cert via the existing
+      acme.sh/DuckDNS setup — see `docs/ops/access.md`). Resource
+      footprint: ~4.4GB/11GB RAM used total (alongside `apps/platform` +
+      the 3 unrelated projects), ~3.2GB attributable to the Invenio stack
+      itself (search/worker are the heaviest at ~1GB+ each) — comfortable
+      headroom. All 4 other live domains spot-checked unaffected after
+      both the container startup and the Traefik config edit. Confirmed
+      `SITE_UI_URL`/`TRUSTED_HOSTS`/`PROXYFIX_CONFIG` correctly produce
+      HTTPS-aware redirects/cookies (`Set-Cookie: ...; Secure`) behind
+      Traefik. One real finding: the cookiecutter's uwsgi services default
+      to the binary uwsgi protocol (`socket = ...`), meant to sit behind
+      the bundled nginx `frontend` (which speaks `uwsgi_pass`) — routing
+      Traefik directly to the app container needed `http-socket` instead.
+      This POC therefore has no static-asset styling (nginx normally
+      serves `/static`) and no `/api` path-split routing — both explicitly
+      deferred to **Migration Phase 7**, which needs to decide for real
+      whether the production deploy keeps nginx-in-front (full fidelity,
+      more moving parts) or goes Traefik-direct like this POC (simpler,
+      needs its own static-serving + `/api` routing answer). POC is left
+      running for now — see `docs/ops/access.md` for teardown notes when
+      it's no longer needed.
+- [x] **Migration Phase 3 — Visualization Sheet metadata mapping**
+      (placeholder pass, deliberately not final): `platform/site/open_vis_framework/custom_fields.py`
+      defines 15 `ovf:*` custom fields, one per ADR 0004 field not
+      already covered by an InvenioRDM native field (title, creators,
+      description, subjects, rights all map to native fields - no
+      custom field needed for those). Every field is a plain `TextCF`
+      for now - same granularity as the old free-text columns, no real
+      validation yet (e.g. `viz_url` isn't checked as a URL,
+      `ai_involvement` isn't a constrained vocabulary despite having
+      been a Postgres enum before). `ai_involvement` and `chart_types`
+      are marked `use_as_filter=True` so Migration Phase 6 can facet on
+      them. Verified locally: `invenio rdm-records custom-fields init`
+      succeeds, all 15 fields load into `app.config['RDM_CUSTOM_FIELDS']`.
+      Native-field mapping (title/creators/description/subjects/rights)
+      and real validation are explicitly deferred to a later, non-
+      placeholder pass over this same file - see the TODO at the top of
+      `custom_fields.py`.
+- [x] **Migration Phase 4 — Auth** (partial, by explicit direction): OAuth
+      (Google/GitHub/ORCID via `invenio-oauthclient`) skipped for now —
+      needs external OAuth app registrations, revisit before Migration
+      Phase 8 cutover (see `docs/ops/access.md`). Instead, one local-login
+      test account was created (InvenioRDM's local login was already
+      enabled by default - `ACCOUNTS_LOCAL_LOGIN_ENABLED = True` in
+      `invenio.cfg`, no new code): `admin@example.com` / `admin123`
+      (InvenioRDM enforces a 6-char password minimum, so not literally
+      "admin"/"admin"), granted the `admin` role. Created on both the
+      local dev instance and the server POC via `invenio users create`
+      + `invenio roles add`. Not meant to survive past this dev/testing
+      period - revisit alongside real Phase 4 auth work.
+- [x] **Migration Phase 5 — Branding/UI**: already satisfied by the
+      cookiecutter's own defaults - `THEME_SITENAME`/`THEME_FRONTPAGE_TITLE`
+      in `invenio.cfg` are set to "Open Vis Framework" from the `invenio-cli
+      init` prompts (Phase 1). No further work done: still the default
+      Invenio theme/layout, functionally correct per this phase's
+      original scope, not a visual redesign - that's a separate,
+      explicitly-deferred follow-up, not blocking anything else.
+- [ ] **Migration Phase 6 — Search & browse** — *skipped for now*
+      (explicit call). Native OpenSearch-backed faceting (license, AI
+      involvement, keywords) replacing the old `ilike` browse query is
+      still the eventual plan; revisit after the placeholder custom
+      fields from Migration Phase 3 get their real (non-placeholder)
+      pass, since facet quality depends on that.
+- [x] **Migration Phase 7 — Deploy pipeline**: `.github/workflows/deploy-platform.yml`
+      (took over the name/role of the old Next.js deploy workflow, which
+      it replaced) — SSH+Compose, reuses the same `DEPLOY_SSH_KEY` secret.
+      Originally targeted the scratch POC domain via a POC-specific
+      override; at Migration Phase 8 that override was replaced by
+      `platform/docker-compose.prod-override.yml` (real domain,
+      `open-vis-framework.duckdns.org`). Does not yet automate one-time
+      DB/index/role init (run once by hand over SSH at cutover, matching
+      how the Phase 2 POC was set up) - a fresh Postgres volume needs that
+      same manual step again.
+- [x] **Migration Phase 8 — Cutover & retirement**: `apps/platform`
+      deleted (Next.js/Drizzle/Auth.js, root `docker-compose.yml`/
+      `docker-compose.override.yml`, the old `deploy-platform.yml` - all
+      gone, git history preserves them). `pnpm-workspace.yaml`/`ci.yml`
+      updated (ci.yml gained a `platform/` sanity job: `uv sync --frozen`,
+      no tests yet - see `docs/ROADMAP.md`'s note in that job).
+      ADR 0002/0003 marked superseded (0004 already was, from the Phase 3
+      commit history). Traefik's `open-vis-framework.duckdns.org` router
+      repointed from the old Next.js container (port 3001) to the real
+      InvenioRDM deployment, reusing the same already-issued Let's
+      Encrypt cert (same domain, no new cert needed). The scratch POC
+      from Migration Phase 2 was torn down as part of this (its
+      containers, Traefik entries, and `~/ovf-invenio-poc/` directory on
+      the server) - superseded by the real deployment.
+      **Known gap, accepted deliberately** (see the direction that
+      triggered this phase): `SECRET_KEY` is still `docker-services.yml`'s
+      `CHANGE_ME` placeholder in production. Real follow-up work, not
+      blocking this cutover, but should not stay this way indefinitely -
+      whoever picks up Migration Phase 4 (OAuth) for real should fix this
+      in the same pass, since both touch session/auth security.
+
+No data migration needed — only test/seed data exists in `sheets` today
+(confirmed before starting this migration), so cutover is a clean
+replacement, not a backfill.
+
+## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
 - [x] **Phase 0 — Docs**: this file, ADR 0003, `docs/ops/access.md`.
 - [x] **Phase 1 — Verify Docker installs on the existing server** (go/no-go
@@ -72,38 +199,41 @@ See `docs/adr/0003-dockerize-same-server.md` for the deploy architecture and
 - Structured (non-free-text) sub-fields within sheet sections — e.g. a
   proper repeatable data-sources list instead of one free-text block.
 
-## Local dev
+## Local dev (`platform/`)
+
+Different toolchain entirely from `apps/web` - Python/`invenio-cli`, not
+pnpm. Needs Python 3.14, Node 24+ (separate from `apps/web`'s pinned
+Node 22 - see `.nvmrc`, unaffected), `uv`, `pipx`, ImageMagick, Docker.
 
 ```
-cp apps/platform/.env.example apps/platform/.env   # once, fill in secrets
-pnpm install
-docker compose --env-file apps/platform/.env up -d postgres   # infra only
-pnpm --filter platform db:migrate
-pnpm --filter platform db:seed     # optional: admin@example.com / admin
-pnpm dev                             # turbo run dev — fast HMR
+pipx install invenio-cli
+cd platform
+invenio-cli install          # Python deps (uv) + JS deps/asset build (pnpm/rspack)
+invenio-cli services setup   # Postgres/OpenSearch/Redis/RabbitMQ containers + DB/index init
+invenio-cli run               # dev server at https://127.0.0.1:5000 (self-signed cert)
 ```
 
-**Always pass `--env-file apps/platform/.env`** to `docker compose`
-commands — Compose's `${VAR}` substitution inside `docker-compose.yml`
-only auto-reads a root-level `.env` by default, and this project
-deliberately keeps one `.env` file (under `apps/platform/`, alongside
-`.env.example`) rather than duplicating secrets in two places.
+`invenio-cli services setup`'s Postgres binds host port 5433, not 5432 -
+see the comment on `db`'s `ports:` in `platform/docker-services.yml` for
+why (a leftover from when `apps/platform`'s own dev Postgres held 5432;
+no longer a real conflict since `apps/platform` is gone, but harmless to
+leave as-is).
 
-`DATABASE_URL` in `apps/platform/.env` points at `localhost:5432` — correct
-for host-side tools (`pnpm dev`, `drizzle-kit`). The containerized app
-needs the Docker network name instead; `docker-compose.yml` overrides
-`DATABASE_URL` (and `UPLOADS_DIR`) for the `platform` service specifically
-so this isn't a manual step.
+Full-stack parity check (containerized, same images the server builds):
+```
+cd platform
+docker compose --file docker-compose.full.yml build web-ui
+docker compose --file docker-compose.full.yml build web-api worker scheduler
+docker compose --file docker-compose.full.yml up -d cache db mq search web-ui web-api worker scheduler
+# one-time, fresh volume only:
+docker compose --file docker-compose.full.yml exec web-ui invenio db init create
+docker compose --file docker-compose.full.yml exec web-ui invenio index init
+docker compose --file docker-compose.full.yml exec web-ui invenio files location create --default default-location $INVENIO_INSTANCE_PATH/data
+docker compose --file docker-compose.full.yml exec web-ui invenio roles create admin
+docker compose --file docker-compose.full.yml exec web-ui invenio access allow superuser-access role admin
+```
 
-Full-stack parity check before pushing (uses the real Dockerfile that the
-server will build too):
-```
-docker compose --env-file apps/platform/.env up --build
-```
-
-Migrations against a server (local or prod), without needing Node/pnpm on
-the host at all:
-```
-docker compose --env-file apps/platform/.env --profile tools run --rm migrate
-docker compose --env-file apps/platform/.env --profile tools run --rm seed  # optional
-```
+Production deploy uses `docker-compose.prod-override.yml` on top of the
+same `docker-compose.full.yml` (real domain, see
+`.github/workflows/deploy-platform.yml`) - don't use it locally, it
+points at `open-vis-framework.duckdns.org`.
