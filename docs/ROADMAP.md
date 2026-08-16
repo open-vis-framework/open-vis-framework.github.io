@@ -132,6 +132,41 @@ skipped/deferred) - see those phases below for what to pick up.
       whoever picks up Migration Phase 4 (OAuth) for real should fix this
       in the same pass, since both touch session/auth security.
 
+      **Two real bugs found only after the domain was actually live**
+      (both now fixed in the committed `platform/docker/uwsgi/*.ini`
+      files, not just patched by hand on the server, so they don't
+      recur on the next deploy):
+      1. The Migration Phase 2 `http-socket` fix (uwsgi needs plain HTTP,
+         not the binary uwsgi protocol, since there's no nginx in front
+         to translate) had only ever been applied to the scratch POC's
+         server-local copy - never committed. The real cutover deploy
+         reverted to the cookiecutter's default and returned 502 behind
+         Traefik until this was caught and fixed for real.
+      2. `/static/*` 404'd entirely with no nginx to serve it - which
+         broke the deposit form's JS bundle. Clicking "Upload" showed a
+         bare "Page not found" instead of the form. This is *not* the
+         "static-asset styling" gap Migration Phase 2 already flagged as
+         acceptable (that meant "looks unstyled"); this broke the
+         platform's core function and was fixed immediately, not treated
+         as an accepted trade-off. Fix: uwsgi's own `static-map`
+         directive serves `/static` directly from the container.
+
+      Also missing from the manual cutover init steps until the demo
+      records below failed with `InvalidRelationValue`: `invenio
+      rdm-records fixtures` (loads the resource-types/licenses/etc.
+      vocabularies) - `invenio-cli services setup` does this
+      automatically for local dev, but the manual production init
+      commands didn't include it. Documented in `docs/ops/access.md`'s
+      full one-time-init list now.
+
+      **3 real-world example Visualization Sheets** added as demo data
+      (Gapminder's "Wealth & Health of Nations", Our World in Data's
+      COVID-19 Data Explorer, The Pudding's "Women's Pockets are
+      Inferior") - `url`-type viz source linking to the real published
+      projects, not uploaded/hosted copies. One-off `invenio shell`
+      script, not a repeatable fixture - see git history if it needs
+      redoing (e.g. after a fresh Postgres volume).
+
 No data migration needed — only test/seed data exists in `sheets` today
 (confirmed before starting this migration), so cutover is a clean
 replacement, not a backfill.

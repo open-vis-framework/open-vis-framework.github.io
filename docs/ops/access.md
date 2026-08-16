@@ -11,30 +11,43 @@ live" below).
 
 | Host | IP | OS | Purpose | User |
 |---|---|---|---|---|
-| Production VPS | `89.58.55.170` | Debian 10 "buster" (**EOL** since June 2024 — see `docs/adr/0002-self-hosted-platform.md` / `docs/adr/0003-dockerize-same-server.md`) | Shared box: `apps/platform` (this project) + 3 unrelated projects (GeoNet, mlg, romani-project) behind one Traefik instance | `admin` |
+| Production VPS | `89.58.55.170` | Debian 10 "buster" (**EOL** since June 2024 — see `docs/adr/0002-self-hosted-platform.md` / `docs/adr/0003-dockerize-same-server.md`) | Shared box: `platform/` (this project's InvenioRDM instance) + 3 unrelated projects (GeoNet, mlg, romani-project) behind one Traefik instance | `admin` |
 
-`apps/platform` is reachable at `https://open-vis-framework.duckdns.org`
-(free DuckDNS domain — swap for a real domain later if desired; DNS is
-managed via the DuckDNS account, see below).
+`platform/` (InvenioRDM) is reachable at
+`https://open-vis-framework.duckdns.org` (free DuckDNS domain — swap for
+a real domain later if desired; DNS is managed via the DuckDNS account,
+see below). As of Migration Phase 8 this replaced the old Next.js
+`apps/platform`, which has been deleted (git history preserves it) —
+same domain, same cert, repointed Traefik router.
 
-**InvenioRDM migration POC** (see `docs/adr/0005-adopt-inveniordm.md`,
-ROADMAP Migration Phase 2): a scratch proof-of-concept stack is also
-running on this same server, reachable at `https://ovf-invenio.duckdns.org`.
-Not linked from anywhere, not production, no real data — exists to
-validate resource footprint and Traefik/reverse-proxy behavior before
-committing further to the InvenioRDM migration. Artifacts left on the
-server: `~/ovf-invenio-poc/` (app source + certs), a `ovf-invenio-poc`
-router/service/cert entry appended to
-`/home/admin/mlg/mlg-traefik/config.yaml`, and a Let's Encrypt cert via
-acme.sh (same DuckDNS account token, no new credential). Uses uwsgi's
-plain `http-socket` mode (not the `socket` uwsgi-protocol default,
-which needs nginx in front to translate) since Traefik is routed
-directly to the app container, bypassing the cookiecutter's nginx
-`frontend` service entirely — static assets are unstyled as a result,
-which is expected and untested by design here (Phase 5 handles real
-branding/UI). **Tear this POC down** (stop the containers, remove the
-Traefik entries, `docker compose down -v`) once Phase 2's evaluation is
-complete, whichever way it goes — it's not meant to be long-lived.
+Runs as 8 Docker containers (`platform-{cache,db,mq,search,web-ui,web-api,worker,scheduler}-1`)
+via `platform/docker-compose.full.yml` + `platform/docker-compose.prod-override.yml`,
+deployed from the real git checkout at `~/open-vis-framework-src/platform/`
+by `.github/workflows/deploy-platform.yml`. Traefik routes directly to
+`web-ui`/`web-api` (ports 5000/5001) — no nginx in front. Two real
+issues found and fixed only *after* the domain was actually live (both
+now fixed in the committed `platform/docker/uwsgi/*.ini` files, so
+future deploys don't need to rediscover them):
+1. uwsgi defaulted to the binary uwsgi protocol (`socket = ...`), which
+   needs nginx to translate — fixed via `http-socket` instead, since
+   Traefik speaks plain HTTP to the container directly.
+2. `/static/*` 404'd entirely (no nginx to serve it), which broke the
+   deposit form's JS bundle — "Upload" showed a bare 404. Fixed via
+   uwsgi's own `static-map` directive.
+
+One-time init that isn't part of the automated deploy workflow (a fresh
+Postgres/OpenSearch volume needs this again): `invenio db init create`,
+`invenio index init`, `invenio files location create`,
+`invenio roles create admin` + `invenio access allow superuser-access
+role admin`, `invenio rdm-records fixtures` (vocabularies — resource
+types, licenses, etc.; skipping this causes `InvalidRelationValue`
+errors on record creation), `invenio rdm-records custom-fields init`.
+
+The InvenioRDM migration POC used during Migration Phase 2 (scratch
+subdomain `ovf-invenio.duckdns.org`) was torn down as part of Phase 8
+cutover — its containers, Traefik entries, and `~/ovf-invenio-poc/`
+directory are gone. If that subdomain still resolves, nothing is
+listening on it anymore.
 
 A new SSH key (`ovf_deploy`, ed25519, no passphrase) was generated
 during this migration to replace an earlier interactive key that was no
@@ -72,11 +85,14 @@ root. Any step needing `sudo` is a manual, human-run step.
 - **DuckDNS token**: needed only to change the domain's IP mapping;
   associated with the `vedelsbrunner` GitHub-linked DuckDNS account. Not
   stored in this repo.
-- **Database credentials, `AUTH_SECRET`, OAuth client secrets** (once
-  Phase 3/4 of `docs/ROADMAP.md` land): `apps/platform/.env` on the
-  server (git-ignored, never committed — see `apps/platform/.env.example`
-  for the shape without values) and mirrored wherever CI needs them for
-  the migration step.
+- **Database/cache/mq credentials, `SECRET_KEY`, future OAuth client
+  secrets**: currently hardcoded dev-only defaults in
+  `platform/docker-services.yml` (`SECRET_KEY` is still the literal
+  `CHANGE_ME` placeholder in production — see `docs/ROADMAP.md`'s
+  Migration Phase 8 entry, a known gap accepted deliberately at cutover
+  time, not yet fixed). No git-ignored `.env` mechanism exists for
+  `platform/` yet the way the old `apps/platform` had one - needed
+  before this is fixed for real.
 
 ## Traefik (shared reverse proxy on the production VPS)
 
