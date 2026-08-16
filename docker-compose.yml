@@ -15,5 +15,44 @@ services:
       context: .
       dockerfile: apps/platform/Dockerfile
     restart: unless-stopped
+    env_file:
+      - apps/platform/.env
+    environment:
+      # Overrides whatever DATABASE_URL is in .env: that file is shared
+      # with host-side tooling (drizzle-kit, `pnpm dev`), which needs
+      # "localhost" - the containerized app needs the Docker network
+      # service name instead. `environment:` wins over `env_file:` for
+      # the same key.
+      DATABASE_URL: postgres://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - platform_uploads:/app/apps/platform/uploads
     ports:
       - "3001:3000"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in apps/platform/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-platform}
+    env_file:
+      - apps/platform/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Deliberately no `ports:` here — publishing 5432 on this file would
+    # expose Postgres on the server's public IP too, since this is the
+    # same file the server deploys. Host access for local tooling
+    # (drizzle-kit studio etc.) comes from docker-compose.override.yml.
+
+volumes:
+  postgres_data:
+  platform_uploads:

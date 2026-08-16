@@ -6,5 +6,9 @@ packages:
 # (supply-chain safety); we keep them disabled until something actually
 # needs them (e.g. `sharp` for image processing in apps/platform).
 allowBuilds:
+  # drizzle-kit's CLI uses esbuild internally (TS config loading /
+  # migration tooling); its install script just fetches a prebuilt
+  # native binary for the current platform. Widely used, low risk.
+  esbuild: true
   sharp: false
   unrs-resolver: false

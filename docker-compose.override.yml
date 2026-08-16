@@ -1,0 +1,10 @@
+# Local-development-only overrides, auto-merged by plain `docker compose`
+# commands. The server's deploy script (Phase 7) references
+# `docker-compose.yml` by explicit filename, so this file never applies
+# there — publishing Postgres's port here would otherwise expose it on
+# the server's public IP too.
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
