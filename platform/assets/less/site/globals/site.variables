@@ -1,0 +1,25 @@
+/*******************************
+    Open Vis Framework — theme
+ *******************************/
+
+/* Minimal, high-leverage overrides of invenio-theme's own site.variables
+ * (platform/.venv/lib/*/site-packages/invenio_theme/assets/.../theme/globals/site.variables)
+ * — this file is the officially intended per-instance customization
+ * hook, loaded after the base theme so these values win. Kept small on
+ * purpose: color + typography + corner radius cascade through nearly
+ * every component (nav, buttons, cards, borders) for very little
+ * surface area to get wrong. See docs/ROADMAP.md.
+ */
+
+/*--- Brand color: deep indigo (nav bar, accents, borders) instead of
+ * invenio-theme's default muted blue ---*/
+@brandColor: #3730a3;
+
+/*--- Typography: a modern system-font stack instead of the default
+ * Lato (which isn't actually bundled/imported here, so it was silently
+ * falling back to the browser's plain default anyway) - zero network
+ * requests, no CSP changes needed. ---*/
+@fontName: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+/*--- Slightly softer corners site-wide ---*/
+@defaultBorderRadius: 6px;
