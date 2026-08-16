@@ -1,0 +1,18 @@
+{#
+  Open Vis Framework — minimal footer.
+
+  Overrides invenio_app_rdm's default footer.html (three columns of
+  generic InvenioRDM promotional links: "About InvenioRDM", GitHub,
+  Discord, etc. - not relevant to this instance). See
+  docs/ROADMAP.md Migration Phase 9.
+#}
+{%- block footer_top %}
+  <div class="footer-top">
+    <div class="ui container app-rdm-footer">
+      <p class="ovf-footer-note">
+        {{ _("Open Vis Framework") }} —
+        <a href="https://github.com/open-vis-framework/open-vis-framework.github.io">{{ _("Source") }}</a>
+      </p>
+    </div>
+  </div>
+{%- endblock footer_top %}
