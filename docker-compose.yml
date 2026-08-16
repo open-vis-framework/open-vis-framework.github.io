@@ -57,6 +57,28 @@ services:
       postgres:
         condition: service_healthy
 
+  # One-off: `docker compose --profile tools run --rm seed`. Same
+  # builder-stage trick as migrate. Creates a fixed test account
+  # (admin@example.com / admin) if it doesn't already exist - see
+  # apps/platform/scripts/seed.ts. Dev/test convenience only; harmless
+  # to run anywhere since there's no elevated role/permission tied to it
+  # (no moderation system exists yet - see docs/ROADMAP.md).
+  seed:
+    build:
+      context: .
+      dockerfile: apps/platform/Dockerfile
+      target: builder
+    profiles: ["tools"]
+    env_file:
+      - apps/platform/.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}
+    working_dir: /repo/apps/platform
+    entrypoint: ["node", "--experimental-strip-types", "scripts/seed.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
