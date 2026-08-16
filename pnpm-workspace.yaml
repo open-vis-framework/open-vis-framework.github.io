@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Packages that ship native build scripts. pnpm blocks these by default
+# (supply-chain safety); we keep them disabled until something actually
+# needs them (e.g. `sharp` for image processing in apps/platform).
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
