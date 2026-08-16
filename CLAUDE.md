@@ -8,8 +8,14 @@ Monorepo, managed with **pnpm workspaces** + **Turborepo**. See
 - `apps/web` — public landing/docs site. Static export, deploys to
   **GitHub Pages**. No backend, no accounts, no server code belongs here.
 - `apps/platform` — the product (browse/submit/moderate visualization
-  projects). Server-rendered Next.js, deploys to **Vercel**. This is where
-  auth, database, and upload logic will live once built.
+  projects). Server-rendered Next.js, deploys to a **self-hosted server**
+  (pm2 + an existing shared Traefik instance) via SSH from GitHub Actions.
+  See `docs/adr/0002-self-hosted-platform.md`. This is where auth,
+  database, and upload logic will live once built.
+  - The server's OS has an old glibc that can't run Next's default
+    Turbopack build — use `pnpm --filter platform run build:webpack`
+    there specifically. CI/Vercel-style/local builds keep using the
+    normal `build` script (Turbopack, faster) — don't change the default.
 - `packages/*` — shared code (UI components, types, config). Doesn't exist
   yet; only add a package here once ≥2 apps actually need to share it.
 - `docs/adr/` — architecture decision records. Add one for any decision

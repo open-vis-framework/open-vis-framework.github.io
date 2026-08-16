@@ -1,0 +1,35 @@
+name: Deploy platform to self-hosted server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/platform/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy-platform.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: 89.58.55.170
+          username: admin
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            export NVM_DIR="$HOME/.nvm"
+            . "$NVM_DIR/nvm.sh"
+            nvm use 22
+            cd ~/open-vis-framework-src
+            git fetch origin main
+            git reset --hard origin/main
+            pnpm install --frozen-lockfile
+            # Turbopack (the default `build` script) needs a newer glibc
+            # than this server has — see docs/adr/0002-self-hosted-platform.md
+            pnpm --filter platform run build:webpack
+            /home/admin/.nvm/versions/node/v16.18.0/bin/pm2 restart open-vis-framework --update-env

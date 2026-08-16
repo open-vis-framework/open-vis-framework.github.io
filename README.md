@@ -8,7 +8,7 @@ others. Early scaffold stage; no product features yet.
 
 ```
 apps/web        public landing/docs site → GitHub Pages (this repo's Pages site)
-apps/platform   the product itself → Vercel (deployed separately)
+apps/platform   the product itself → self-hosted server (pm2 + Traefik)
 packages/*      shared code, once something needs sharing (empty for now)
 docs/adr/       architecture decision records
 ```
