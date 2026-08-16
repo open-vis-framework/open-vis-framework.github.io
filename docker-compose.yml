@@ -24,6 +24,9 @@ services:
       # service name instead. `environment:` wins over `env_file:` for
       # the same key.
       DATABASE_URL: postgres://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}
+      # Same reasoning: .env has a host-relative path for `pnpm dev`;
+      # the container needs its actual mount point (below).
+      UPLOADS_DIR: /app/apps/platform/uploads
     depends_on:
       postgres:
         condition: service_healthy
