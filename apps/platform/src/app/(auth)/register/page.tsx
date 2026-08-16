@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { PageContainer, PageHeading } from "@/components/container";
+import { Button, FieldError, Input } from "@/components/form";
 import { register } from "./actions";
 
 export default async function RegisterPage({
@@ -8,26 +11,29 @@ export default async function RegisterPage({
   const { error } = await searchParams;
 
   return (
-    <main>
-      <h1>Register</h1>
+    <PageContainer>
+      <PageHeading>Register</PageHeading>
 
-      {error && <p>{error}</p>}
+      {error && <FieldError>{error}</FieldError>}
 
-      <form action={register}>
-        <input name="email" type="email" placeholder="Email" required />
-        <input
+      <form action={register} className="mt-4 flex flex-col gap-3">
+        <Input name="email" type="email" placeholder="Email" required />
+        <Input
           name="password"
           type="password"
           placeholder="Password (min 8 characters)"
           required
           minLength={8}
         />
-        <button type="submit">Register</button>
+        <Button type="submit">Register</Button>
       </form>
 
-      <p>
-        Already have an account? <a href="/login">Log in</a>
+      <p className="mt-6 text-sm text-gray-600 dark:text-gray-400">
+        Already have an account?{" "}
+        <Link href="/login" className="underline">
+          Log in
+        </Link>
       </p>
-    </main>
+    </PageContainer>
   );
 }

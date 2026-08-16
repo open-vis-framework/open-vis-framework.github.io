@@ -2,6 +2,8 @@ import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { db } from "@/db";
 import { artifacts } from "@/db/schema";
+import { PageContainer, PageHeading } from "@/components/container";
+import { Button } from "@/components/form";
 
 // Without this, Next statically prerenders this page at build time (no
 // cookies/headers/dynamic params in use) - meaning it'd freeze to
@@ -19,22 +21,39 @@ export default async function BrowsePage() {
     .orderBy(desc(artifacts.createdAt));
 
   return (
-    <main>
-      <h1>Browse</h1>
-      <p>
-        <Link href="/submit">Submit an artifact</Link>
-      </p>
+    <PageContainer>
+      <div className="mb-6 flex items-center justify-between">
+        <PageHeading>Browse</PageHeading>
+        <Link href="/submit">
+          <Button variant="secondary">Submit an artifact</Button>
+        </Link>
+      </div>
 
-      {items.length === 0 && <p>Nothing submitted yet.</p>}
+      {items.length === 0 && (
+        <p className="text-gray-500 dark:text-gray-400">
+          Nothing submitted yet.
+        </p>
+      )}
 
-      <ul>
+      <ul className="flex flex-col gap-3">
         {items.map((item) => (
           <li key={item.id}>
-            <Link href={`/artifacts/${item.id}`}>{item.title}</Link>
-            {item.description && <p>{item.description}</p>}
+            <Link
+              href={`/artifacts/${item.id}`}
+              className="block rounded-lg border border-gray-200 p-4 transition-colors hover:border-gray-400 dark:border-gray-800 dark:hover:border-gray-600"
+            >
+              <h2 className="font-medium text-gray-900 dark:text-gray-100">
+                {item.title}
+              </h2>
+              {item.description && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {item.description}
+                </p>
+              )}
+            </Link>
           </li>
         ))}
       </ul>
-    </main>
+    </PageContainer>
   );
 }

@@ -1,27 +1,37 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { PageContainer, PageHeading } from "@/components/container";
+import { Button } from "@/components/form";
 
 export default async function Home() {
   const session = await auth();
 
   return (
-    <main>
-      <h1>Open Vis Framework — Platform</h1>
-      <p>Submit, browse, and curate information visualization projects.</p>
+    <PageContainer>
+      <PageHeading>Open Vis Framework</PageHeading>
+      <p className="mb-8 text-gray-600 dark:text-gray-400">
+        Submit, browse, and curate information visualization projects.
+      </p>
 
-      <nav>
-        <Link href="/browse">Browse</Link>
-        {" · "}
+      <div className="flex gap-3">
+        <Link href="/browse">
+          <Button variant="secondary">Browse</Button>
+        </Link>
         {session?.user ? (
-          <Link href="/submit">Submit an artifact</Link>
+          <Link href="/submit">
+            <Button>Submit an artifact</Button>
+          </Link>
         ) : (
           <>
-            <Link href="/login">Log in</Link>
-            {" · "}
-            <Link href="/register">Register</Link>
+            <Link href="/login">
+              <Button>Log in</Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="secondary">Register</Button>
+            </Link>
           </>
         )}
-      </nav>
-    </main>
+      </div>
+    </PageContainer>
   );
 }
