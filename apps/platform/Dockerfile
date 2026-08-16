@@ -51,6 +51,16 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/platform/.next/standalone .
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/platform/.next/static ./apps/platform/.next/static
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/platform/public ./apps/platform/public
 
+# UPLOADS_DIR's mount point (docker-compose.yml's platform_uploads
+# volume) needs to exist, owned by nextjs, *before* USER switches below
+# and before the volume is first mounted - Docker copies a fresh named
+# volume's initial content/ownership from whatever's already at that
+# path in the image. Without this the directory only gets created (as
+# root, by mkdir() in storage.ts) once the container's already running
+# as nextjs, which then can't write to its own volume - hit exactly
+# this in production, see docs/ROADMAP.md.
+RUN mkdir -p /app/apps/platform/uploads && chown nextjs:nodejs /app/apps/platform/uploads
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "apps/platform/server.js"]
