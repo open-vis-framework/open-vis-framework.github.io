@@ -1,0 +1,19 @@
+# Single source of truth for running apps/platform, used identically for
+# local development and on the production server (see
+# docs/adr/0003-dockerize-same-server.md and docs/ROADMAP.md).
+#
+# Local dev: `docker compose up -d postgres` for infra, `pnpm dev` for the
+# app itself (fast HMR). `docker compose up --build` runs the full stack
+# through this same Dockerfile, for a prod-parity check before pushing.
+#
+# docker-compose.override.yml (dev-only, git-tracked) adds things that
+# should NEVER apply on the server, like publishing Postgres's port.
+
+services:
+  platform:
+    build:
+      context: .
+      dockerfile: apps/platform/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
