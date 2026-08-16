@@ -35,6 +35,28 @@ services:
     ports:
       - "3001:3000"
 
+  # One-off: `docker compose --profile tools run --rm migrate`. Uses the
+  # Dockerfile's `builder` stage, which still has drizzle-kit/devDeps
+  # (the slim `platform` runtime image deliberately doesn't) - and gives
+  # a way to reach postgres (Docker network name, no published port) to
+  # run migrations without needing Node/pnpm installed on the host at
+  # all, on any server this stack runs on.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/platform/Dockerfile
+      target: builder
+    profiles: ["tools"]
+    env_file:
+      - apps/platform/.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-platform}
+    working_dir: /repo/apps/platform
+    entrypoint: ["pnpm", "exec", "drizzle-kit", "migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
