@@ -58,12 +58,27 @@ app, kept for context; "Migration Phase N" is the current work.
       needs its own static-serving + `/api` routing answer). POC is left
       running for now — see `docs/ops/access.md` for teardown notes when
       it's no longer needed.
-- [ ] **Migration Phase 3 — Visualization Sheet metadata mapping**: ADR
-      0004's six sections → InvenioRDM native fields + `ovf:*` custom
-      fields; native file uploads for the file case.
-- [ ] **Migration Phase 4 — Auth**: `invenio-oauthclient` for Google,
-      GitHub, ORCID. New OAuth app registrations needed (see
-      `docs/ops/access.md`).
+- [x] **Migration Phase 3 — Visualization Sheet metadata mapping**
+      (placeholder pass, deliberately not final): `platform/site/open_vis_framework/custom_fields.py`
+      defines 15 `ovf:*` custom fields, one per ADR 0004 field not
+      already covered by an InvenioRDM native field (title, creators,
+      description, subjects, rights all map to native fields - no
+      custom field needed for those). Every field is a plain `TextCF`
+      for now - same granularity as the old free-text columns, no real
+      validation yet (e.g. `viz_url` isn't checked as a URL,
+      `ai_involvement` isn't a constrained vocabulary despite having
+      been a Postgres enum before). `ai_involvement` and `chart_types`
+      are marked `use_as_filter=True` so Migration Phase 6 can facet on
+      them. Verified locally: `invenio rdm-records custom-fields init`
+      succeeds, all 15 fields load into `app.config['RDM_CUSTOM_FIELDS']`.
+      Native-field mapping (title/creators/description/subjects/rights)
+      and real validation are explicitly deferred to a later, non-
+      placeholder pass over this same file - see the TODO at the top of
+      `custom_fields.py`.
+- [ ] **Migration Phase 4 — Auth** — *skipped for now* (explicit call,
+      revisit before Migration Phase 8 cutover; `invenio-oauthclient`
+      for Google, GitHub, ORCID, new OAuth app registrations needed —
+      see `docs/ops/access.md`).
 - [ ] **Migration Phase 5 — Branding/UI**: default Invenio theme first;
       functional correctness, not visual parity with the old Tailwind UI.
 - [ ] **Migration Phase 6 — Search & browse**: native OpenSearch-backed
