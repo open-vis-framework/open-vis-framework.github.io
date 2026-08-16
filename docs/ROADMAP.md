@@ -5,12 +5,13 @@ you're picking this project up cold (fresh clone, new agent session) — the
 ADRs in `docs/adr/` explain *why* each decision was made; this is *what's
 done and what's next*, kept up to date as phases land.
 
-Current phase: **migrating from `apps/platform` (Next.js) to `platform/`
-(InvenioRDM)** — see `docs/adr/0005-adopt-inveniordm.md` for why. The old
-Next.js app remains live at `https://open-vis-framework.duckdns.org` and
-gets bug fixes only until cutover (Migration Phase 8 below); no new
-features land on it. "Phases 0-9" below are the completed history of that
-app, kept for context; "Migration Phase N" is the current work.
+Current phase: **cut over to `platform/` (InvenioRDM)** — see
+`docs/adr/0005-adopt-inveniordm.md` for why. The old Next.js
+`apps/platform` app has been deleted (Migration Phase 8); its history is
+kept below ("Phases 0-9") for context, same as ADR 0004 did for the
+schema it replaced. Known-incomplete right now: no OAuth (local login
+only), no search facets (Migration Phases 4 and 6 were both explicitly
+skipped/deferred) - see those phases below for what to pick up.
 
 ## InvenioRDM migration (current work — see ADR 0005)
 
@@ -100,19 +101,36 @@ app, kept for context; "Migration Phase N" is the current work.
       still the eventual plan; revisit after the placeholder custom
       fields from Migration Phase 3 get their real (non-placeholder)
       pass, since facet quality depends on that.
-- [x] **Migration Phase 7 — Deploy pipeline**: `.github/workflows/deploy-platform-invenio.yml`
-      — mirrors the existing `deploy-platform.yml` SSH+Compose pattern.
-      Deliberately targets the same scratch POC path/domain
-      (`~/ovf-invenio-poc/`, `ovf-invenio.duckdns.org`) used in Migration
-      Phase 2, not the real production domain — repointing it to replace
-      `apps/platform` for real is Migration Phase 8's job, not this one.
-      Triggers on push to `main` touching `platform/**` (won't fire until
-      this branch is actually merged) plus `workflow_dispatch`. Not yet
-      tested end-to-end (no push to `main` has happened) - first real run
-      will be either a manual dispatch or whenever this branch merges.
-- [ ] **Migration Phase 8 — Cutover & retirement**: flip Traefik, delete
-      `apps/platform`, update `pnpm-workspace.yaml`/`turbo.json`/`ci.yml`,
-      mark ADR 0002/0003/0004 fully superseded.
+- [x] **Migration Phase 7 — Deploy pipeline**: `.github/workflows/deploy-platform.yml`
+      (took over the name/role of the old Next.js deploy workflow, which
+      it replaced) — SSH+Compose, reuses the same `DEPLOY_SSH_KEY` secret.
+      Originally targeted the scratch POC domain via a POC-specific
+      override; at Migration Phase 8 that override was replaced by
+      `platform/docker-compose.prod-override.yml` (real domain,
+      `open-vis-framework.duckdns.org`). Does not yet automate one-time
+      DB/index/role init (run once by hand over SSH at cutover, matching
+      how the Phase 2 POC was set up) - a fresh Postgres volume needs that
+      same manual step again.
+- [x] **Migration Phase 8 — Cutover & retirement**: `apps/platform`
+      deleted (Next.js/Drizzle/Auth.js, root `docker-compose.yml`/
+      `docker-compose.override.yml`, the old `deploy-platform.yml` - all
+      gone, git history preserves them). `pnpm-workspace.yaml`/`ci.yml`
+      updated (ci.yml gained a `platform/` sanity job: `uv sync --frozen`,
+      no tests yet - see `docs/ROADMAP.md`'s note in that job).
+      ADR 0002/0003 marked superseded (0004 already was, from the Phase 3
+      commit history). Traefik's `open-vis-framework.duckdns.org` router
+      repointed from the old Next.js container (port 3001) to the real
+      InvenioRDM deployment, reusing the same already-issued Let's
+      Encrypt cert (same domain, no new cert needed). The scratch POC
+      from Migration Phase 2 was torn down as part of this (its
+      containers, Traefik entries, and `~/ovf-invenio-poc/` directory on
+      the server) - superseded by the real deployment.
+      **Known gap, accepted deliberately** (see the direction that
+      triggered this phase): `SECRET_KEY` is still `docker-services.yml`'s
+      `CHANGE_ME` placeholder in production. Real follow-up work, not
+      blocking this cutover, but should not stay this way indefinitely -
+      whoever picks up Migration Phase 4 (OAuth) for real should fix this
+      in the same pass, since both touch session/auth security.
 
 No data migration needed — only test/seed data exists in `sheets` today
 (confirmed before starting this migration), so cutover is a clean
@@ -181,38 +199,41 @@ replacement, not a backfill.
 - Structured (non-free-text) sub-fields within sheet sections — e.g. a
   proper repeatable data-sources list instead of one free-text block.
 
-## Local dev
+## Local dev (`platform/`)
+
+Different toolchain entirely from `apps/web` - Python/`invenio-cli`, not
+pnpm. Needs Python 3.14, Node 24+ (separate from `apps/web`'s pinned
+Node 22 - see `.nvmrc`, unaffected), `uv`, `pipx`, ImageMagick, Docker.
 
 ```
-cp apps/platform/.env.example apps/platform/.env   # once, fill in secrets
-pnpm install
-docker compose --env-file apps/platform/.env up -d postgres   # infra only
-pnpm --filter platform db:migrate
-pnpm --filter platform db:seed     # optional: admin@example.com / admin
-pnpm dev                             # turbo run dev — fast HMR
+pipx install invenio-cli
+cd platform
+invenio-cli install          # Python deps (uv) + JS deps/asset build (pnpm/rspack)
+invenio-cli services setup   # Postgres/OpenSearch/Redis/RabbitMQ containers + DB/index init
+invenio-cli run               # dev server at https://127.0.0.1:5000 (self-signed cert)
 ```
 
-**Always pass `--env-file apps/platform/.env`** to `docker compose`
-commands — Compose's `${VAR}` substitution inside `docker-compose.yml`
-only auto-reads a root-level `.env` by default, and this project
-deliberately keeps one `.env` file (under `apps/platform/`, alongside
-`.env.example`) rather than duplicating secrets in two places.
+`invenio-cli services setup`'s Postgres binds host port 5433, not 5432 -
+see the comment on `db`'s `ports:` in `platform/docker-services.yml` for
+why (a leftover from when `apps/platform`'s own dev Postgres held 5432;
+no longer a real conflict since `apps/platform` is gone, but harmless to
+leave as-is).
 
-`DATABASE_URL` in `apps/platform/.env` points at `localhost:5432` — correct
-for host-side tools (`pnpm dev`, `drizzle-kit`). The containerized app
-needs the Docker network name instead; `docker-compose.yml` overrides
-`DATABASE_URL` (and `UPLOADS_DIR`) for the `platform` service specifically
-so this isn't a manual step.
+Full-stack parity check (containerized, same images the server builds):
+```
+cd platform
+docker compose --file docker-compose.full.yml build web-ui
+docker compose --file docker-compose.full.yml build web-api worker scheduler
+docker compose --file docker-compose.full.yml up -d cache db mq search web-ui web-api worker scheduler
+# one-time, fresh volume only:
+docker compose --file docker-compose.full.yml exec web-ui invenio db init create
+docker compose --file docker-compose.full.yml exec web-ui invenio index init
+docker compose --file docker-compose.full.yml exec web-ui invenio files location create --default default-location $INVENIO_INSTANCE_PATH/data
+docker compose --file docker-compose.full.yml exec web-ui invenio roles create admin
+docker compose --file docker-compose.full.yml exec web-ui invenio access allow superuser-access role admin
+```
 
-Full-stack parity check before pushing (uses the real Dockerfile that the
-server will build too):
-```
-docker compose --env-file apps/platform/.env up --build
-```
-
-Migrations against a server (local or prod), without needing Node/pnpm on
-the host at all:
-```
-docker compose --env-file apps/platform/.env --profile tools run --rm migrate
-docker compose --env-file apps/platform/.env --profile tools run --rm seed  # optional
-```
+Production deploy uses `docker-compose.prod-override.yml` on top of the
+same `docker-compose.full.yml` (real domain, see
+`.github/workflows/deploy-platform.yml`) - don't use it locally, it
+points at `open-vis-framework.duckdns.org`.

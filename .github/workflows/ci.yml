@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  lint-and-build:
+  lint-and-build-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,3 +23,20 @@ jobs:
       - run: pnpm lint
 
       - run: pnpm build
+
+  install-platform:
+    # Sanity check only for now: does platform/'s uv.lock still resolve
+    # cleanly? No lint/test step yet - platform/ has no tests written
+    # (see docs/ROADMAP.md). Expand this job once that changes.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.14"
+
+      - run: uv sync --frozen

@@ -1,15 +1,26 @@
 name: Deploy platform to self-hosted server
 
+# Deploys platform/ (InvenioRDM) to the production domain,
+# open-vis-framework.duckdns.org - replaces the old Next.js apps/platform
+# deploy workflow of the same name as of Migration Phase 8. See
+# docs/adr/0005-adopt-inveniordm.md and docs/ROADMAP.md.
+#
+# Mirrors the previous deploy-platform.yml's SSH + Docker Compose
+# pattern, reusing the same DEPLOY_SSH_KEY CI secret (same server, same
+# purpose).
+#
+# Does NOT run one-time DB/index/role init (invenio db init create,
+# invenio index init, invenio files location create, invenio roles
+# create/access allow) - those were run once by hand over SSH during
+# cutover, matching how Migration Phase 2's POC was set up. A fresh
+# Postgres volume (new server, disaster recovery, etc.) needs that same
+# manual step again - not automated here yet.
+
 on:
   push:
     branches: [main]
     paths:
-      - "apps/platform/**"
-      - "packages/**"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "docker-compose.yml"
-      - ".dockerignore"
+      - "platform/**"
       - ".github/workflows/deploy-platform.yml"
   workflow_dispatch:
 
@@ -27,9 +38,13 @@ jobs:
             cd ~/open-vis-framework-src
             git fetch origin main
             git reset --hard origin/main
-            # docker-compose.yml is the single source of truth (see
-            # docs/adr/0003-dockerize-same-server.md) - no Node/pnpm on
-            # the host needed for any of this, migrations included.
-            docker compose --env-file apps/platform/.env build
-            docker compose --env-file apps/platform/.env --profile tools run --rm migrate
-            docker compose --env-file apps/platform/.env up -d
+            cd platform
+            docker compose --file docker-compose.full.yml \
+              --file docker-compose.prod-override.yml \
+              build web-ui
+            docker compose --file docker-compose.full.yml \
+              --file docker-compose.prod-override.yml \
+              build web-api worker scheduler
+            docker compose --file docker-compose.full.yml \
+              --file docker-compose.prod-override.yml \
+              up -d cache db mq search web-ui web-api worker scheduler

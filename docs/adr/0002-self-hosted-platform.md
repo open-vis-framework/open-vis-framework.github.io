@@ -1,8 +1,14 @@
 # ADR 0002: apps/platform moved from Vercel to a self-hosted server
 
-- Status: accepted
+- Status: superseded
 - Date: 2026-08-16
 - Supersedes the Vercel decision in ADR 0001
+- Superseded by `docs/adr/0005-adopt-inveniordm.md`: `apps/platform`
+  (the Next.js app this ADR is about) was deleted at Migration Phase 8
+  cutover, replaced by `platform/` (InvenioRDM). The "self-hosted, same
+  server, no managed hosting" *stance* this ADR established carries over
+  unchanged to the new deploy target — only the app being deployed and
+  the deploy mechanism specifics (see ADR 0003) changed.
 
 ## Context
 

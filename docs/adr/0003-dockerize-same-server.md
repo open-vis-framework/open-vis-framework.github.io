@@ -1,13 +1,14 @@
 # ADR 0003: Dockerize apps/platform, deploy via plain Docker Compose on the same server
 
-- Status: partially superseded
+- Status: superseded
 - Date: 2026-08-16
 - Supersedes the deploy *mechanism* in `docs/adr/0002-self-hosted-platform.md`
   (does not reverse its "self-host, don't pay for managed hosting" stance)
 - Deploy-mechanism portions superseded by `docs/adr/0005-adopt-inveniordm.md`
-  once `apps/platform` is retired: InvenioRDM (`platform/`) gets its own
-  Docker Compose + deploy workflow. The "same server, Docker Compose,
-  Traefik stays untouched" *pattern* this ADR established carries over;
+  as of Migration Phase 8: `apps/platform` was deleted, InvenioRDM
+  (`platform/`) has its own Docker Compose + deploy workflow now. The
+  "same server, Docker Compose, Traefik stays untouched" *pattern* this
+  ADR established carries over;
   the "self-host, no managed hosting" stance is unchanged.
 
 ## Context

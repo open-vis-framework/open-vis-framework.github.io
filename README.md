@@ -1,32 +1,39 @@
 # Open Vis Framework
 
 An open platform for information visualization projects — people submit
-their work with rich metadata and context, browsable and searchable by
-others. Early scaffold stage; no product features yet.
+their work with rich metadata and context (data provenance, visual
+encoding & design, AI involvement, limitations) as "Visualization
+Sheets", browsable and searchable by others.
 
 ## Repo layout
 
 ```
 apps/web        public landing/docs site → GitHub Pages (this repo's Pages site)
-apps/platform   the product itself → self-hosted server (pm2 + Traefik)
+platform/       the product itself: an InvenioRDM instance → self-hosted server (Docker + Traefik)
 packages/*      shared code, once something needs sharing (empty for now)
 docs/adr/       architecture decision records
 ```
 
-See `docs/adr/0001-monorepo-two-apps.md` for why it's split this way, and
-`CLAUDE.md` for conventions when working in this repo.
+See `docs/adr/0001-monorepo-two-apps.md` for the original repo shape and
+`docs/adr/0005-adopt-inveniordm.md` for why the product moved to
+InvenioRDM. `CLAUDE.md` has conventions for working in this repo.
 
 ## Development
 
+`apps/web`:
 ```
 corepack enable
 pnpm install
-pnpm dev      # both apps in parallel
+pnpm dev
 pnpm build
 pnpm lint
 ```
 
+`platform/`: see `docs/ROADMAP.md`'s "Local dev" section (InvenioRDM's
+own `invenio-cli` tooling, not pnpm).
+
 ## Status
 
-Scaffold only — see `docs/adr/` for what's decided and `CONTRIBUTING.md`
-for the current state of the contribution workflow.
+See `docs/ROADMAP.md` for what's done and what's still known-incomplete
+(auth is local-login only for now, no OAuth; no search facets yet), and
+`CONTRIBUTING.md` for the current state of the contribution workflow.

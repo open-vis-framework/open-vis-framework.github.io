@@ -5,7 +5,7 @@
 ## Which app(s)
 
 - [ ] apps/web
-- [ ] apps/platform
+- [ ] platform/
 - [ ] packages/* / tooling / CI
 
 ## Checklist
