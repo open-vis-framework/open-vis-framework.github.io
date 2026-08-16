@@ -40,6 +40,14 @@ OVF_NAMESPACES = {
 }
 
 OVF_CUSTOM_FIELDS = [
+    # --- VOI: Visualization Object Identifier ---
+    # NOT a real, externally-resolvable identifier yet - self-assigned,
+    # locally unique only. A real one needs DataCite (DOI) registration,
+    # deferred - see docs/ROADMAP.md. Mirrors invenio_rdm_records' own
+    # demo-fixture convention of a "10.9999/..." fake-DOI-shaped string
+    # for non-real identifiers, so it's visually recognizable as
+    # DOI-like without claiming to actually be one.
+    TextCF(name="ovf:voi"),
     # --- The visualization itself (file case is native uploads; this
     # is the alternative "hosted/interactive visualization" case) ---
     TextCF(name="ovf:viz_url"),
@@ -64,6 +72,26 @@ OVF_CUSTOM_FIELDS = [
 ]
 
 OVF_CUSTOM_FIELDS_UI = [
+    {
+        "section": _("Identifier"),
+        "fields": [
+            {
+                "field": "ovf:voi",
+                "ui_widget": "Input",
+                "props": {
+                    "label": _("VOI (Visualization Object Identifier)"),
+                    "placeholder": "10.9999/ovf.xxxxxxx",
+                    "description": _(
+                        "Self-assigned for now, not yet a real externally-"
+                        "resolvable identifier (that needs DOI registration "
+                        "via DataCite - not set up yet). Usually left blank "
+                        "at submission and assigned automatically."
+                    ),
+                    "icon": "hashtag",
+                },
+            },
+        ],
+    },
     {
         "section": _("The visualization"),
         "fields": [
