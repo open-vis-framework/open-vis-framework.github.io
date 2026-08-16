@@ -171,6 +171,50 @@ No data migration needed — only test/seed data exists in `sheets` today
 (confirmed before starting this migration), so cutover is a clean
 replacement, not a backfill.
 
+- [x] **Migration Phase 9 — Post-cutover polish** (theme, VOI, thumbnails):
+  - **Theme pass** (`platform/assets/less/site/globals/site.variables`,
+    previously empty): `@brandColor` (deep indigo), `@fontName` (system-
+    font stack, no Google Fonts/CSP changes needed), `@defaultBorderRadius`
+    (6px). Three variables cascading through nearly every component via
+    invenio-theme's own designated instance-theming hook. Also
+    `THEME_SHOW_FRONTPAGE_INTRO_SECTION = False` in `invenio.cfg` to hide
+    the generic default-theme frontpage blurb.
+  - **VOI (Visualization Object Identifier)**: new `ovf:voi` custom field
+    (`platform/site/open_vis_framework/custom_fields.py`). Self-assigned
+    only (`10.9999/ovf.NNNNNNN`, mirroring invenio_rdm_records' own demo-
+    fixture convention for fake-DOI-shaped test identifiers) - **not** a
+    real, externally-resolvable identifier. A real one needs DataCite DOI
+    registration (`DATACITE_ENABLED` already stubbed in `invenio.cfg`),
+    deferred - needs either a free DataCite Fabrica test account or a
+    paid production membership, both external actions, explicitly not
+    set up yet.
+  - **Thumbnails**: InvenioRDM's native file-upload + `files.default_preview`
+    already does this - no new code needed, just `files.enabled: true` +
+    an attached image at record-creation time. The 3 demo records got
+    simple original SVG-then-PNG placeholder graphics (abstract shapes
+    matching each viz's chart type, in the new brand palette) -
+    deliberately not screenshots of the real (copyrighted) sites, which
+    would be a materially different, riskier thing than the `viz_url`
+    link already used.
+  - **Real bug hit and fixed**: records originally published with
+    `files.enabled: false` permanently lock their file bucket
+    (`invenio_files_rest.BucketLockedError`) - can't add files after the
+    fact via edit. Had to tombstone (soft-delete) and republish the 3
+    demo records rather than edit them in place.
+  - **Real bug hit and fixed, more seriously**: the first tombstone
+    attempt passed `removal_reason: {"id": "misc"}`, which isn't a valid
+    loaded vocabulary term in our reduced-vocab setup - crashed
+    mid-transaction during search indexing, leaving one record in a
+    broken deleted-but-unrenderable state (500 on read). Fixed by
+    directly patching the record's raw tombstone data (bypassing the
+    service layer's relation dereferencing) to drop the bad key, then
+    `restore_record`. Lesson: `removal_reason` is optional on the
+    tombstone schema - omit it entirely for self-service/CLI deletes
+    rather than guessing at a vocabulary ID.
+  - Same three commands run manually (not yet automated) as the original
+    demo-record push: `invenio rdm-records custom-fields init` after
+    each custom-fields change, then the one-off `invenio shell` script.
+
 ## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
 - [x] **Phase 0 — Docs**: this file, ADR 0003, `docs/ops/access.md`.
