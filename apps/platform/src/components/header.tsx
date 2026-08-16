@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/form";
+import { MobileMenu } from "@/components/mobile-menu";
 
 async function logout() {
   "use server";
@@ -11,7 +12,7 @@ export async function Header() {
   const session = await auth();
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800">
+    <header className="relative border-b border-gray-200 dark:border-gray-800">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
         <Link
           href="/"
@@ -20,7 +21,8 @@ export async function Header() {
           Open Vis Framework
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm">
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-4 text-sm sm:flex">
           <Link
             href="/browse"
             className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
@@ -56,6 +58,8 @@ export async function Header() {
             </>
           )}
         </nav>
+
+        <MobileMenu loggedIn={!!session?.user} onLogout={logout} />
       </div>
     </header>
   );

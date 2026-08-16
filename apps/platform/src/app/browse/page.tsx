@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
+import { desc, or, ilike } from "drizzle-orm";
 import { db } from "@/db";
 import { sheets } from "@/db/schema";
 import { PageContainer, PageHeading } from "@/components/container";
+import { Input, Button } from "@/components/form";
 
 // Without this, Next statically prerenders this page at build time (no
 // cookies/headers/dynamic params in use) - meaning it'd freeze to
@@ -22,19 +23,46 @@ const AI_LABELS: Record<string, string> = {
 };
 
 // No auth check - public browsing, deliberately.
-export default async function BrowsePage() {
+export default async function BrowsePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = q?.trim();
+
   const items = await db
     .select()
     .from(sheets)
+    .where(
+      query
+        ? or(
+            ilike(sheets.title, `%${query}%`),
+            ilike(sheets.summary, `%${query}%`),
+            ilike(sheets.keywords, `%${query}%`),
+          )
+        : undefined,
+    )
     .orderBy(desc(sheets.createdAt));
 
   return (
     <PageContainer>
       <PageHeading>Browse</PageHeading>
 
+      <form method="GET" className="mb-6 flex gap-2">
+        <Input
+          name="q"
+          defaultValue={query}
+          placeholder="Search by title, summary, or keywords"
+        />
+        <Button type="submit" variant="secondary">
+          Search
+        </Button>
+      </form>
+
       {items.length === 0 && (
         <p className="text-gray-500 dark:text-gray-400">
-          Nothing submitted yet.
+          {query ? `No sheets match "${query}".` : "Nothing submitted yet."}
         </p>
       )}
 
