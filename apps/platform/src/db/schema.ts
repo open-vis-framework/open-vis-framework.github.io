@@ -62,20 +62,70 @@ export const verificationTokens = pgTable(
   (t) => [primaryKey({ columns: [t.identifier, t.token] })],
 );
 
-// Our own domain table. Status/moderation is deliberately not modeled
-// yet (not requested this round — see docs/ROADMAP.md); adding a
-// nullable `status` column later is a non-breaking migration regardless,
-// so there's nothing to design in ahead of time.
-export const artifacts = pgTable("artifacts", {
+// A "Visualization Sheet" - see docs/adr/0004-visualization-sheets.md for
+// the taxonomy this implements and why. `ownerId` is who can edit it
+// (the submitting platform user); listed `authors` (sheetAuthors table,
+// below) are free-text credits, not necessarily platform accounts -
+// matches how arXiv/HAL/OSF handle authorship vs. the submitting user.
+export const sheets = pgTable("sheets", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   ownerId: text("owner_id")
     .notNull()
     .references(() => users.id),
+
+  // --- Core metadata ---
   title: text("title").notNull(),
-  description: text("description"),
-  fileType: text("file_type").notNull(), // "image" | "pdf"
-  filePath: text("file_path").notNull(), // storage-relative path (see src/lib/storage.ts)
+  summary: text("summary"),
+  keywords: text("keywords"), // comma-separated, v1
+  license: text("license"), // "CC-BY" | "CC0" | "MIT" | "all-rights-reserved" | "other"
+  licenseOther: text("license_other"), // free text when license = "other"
+  contactEmail: text("contact_email"),
+  paperUrl: text("paper_url"),
+  codeUrl: text("code_url"),
+
+  // --- The visualization itself: exactly one of these two is set ---
+  vizSourceType: text("viz_source_type").notNull(), // "file" | "url"
+  fileType: text("file_type"), // "image" | "pdf" - only when vizSourceType = "file"
+  filePath: text("file_path"), // only when vizSourceType = "file"
+  vizUrl: text("viz_url"), // only when vizSourceType = "url" (e.g. an Observable notebook, hosted D3 page, Tableau Public embed)
+
+  // --- Data provenance ---
+  dataSources: text("data_sources"),
+  dataCollectionMethod: text("data_collection_method"),
+  dataTemporalCoverage: text("data_temporal_coverage"),
+  dataTransformations: text("data_transformations"),
+  dataLicense: text("data_license"),
+  dataLimitations: text("data_limitations"),
+
+  // --- Visual encoding & design ---
+  chartTypes: text("chart_types"),
+  toolsUsed: text("tools_used"),
+  encodingDescription: text("encoding_description"),
+  designRationale: text("design_rationale"),
+
+  // --- AI involvement disclosure ---
+  aiInvolvement: text("ai_involvement").notNull().default("none"), // "none" | "data_processing" | "design_assistance" | "code_generation" | "content_generation" | "other"
+  aiDescription: text("ai_description"),
+  aiHumanReview: text("ai_human_review"),
+
+  // --- Limitations ---
+  limitations: text("limitations"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const sheetAuthors = pgTable("sheet_authors", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  sheetId: text("sheet_id")
+    .notNull()
+    .references(() => sheets.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  affiliation: text("affiliation"),
+  orcid: text("orcid"),
+  email: text("email"),
+  position: integer("position").notNull(), // display order
 });

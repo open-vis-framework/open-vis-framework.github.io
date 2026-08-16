@@ -1,40 +1,39 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { desc, eq } from "drizzle-orm";
+import { auth } from "@/auth";
 import { db } from "@/db";
 import { sheets } from "@/db/schema";
 import { PageContainer, PageHeading } from "@/components/container";
+import { Button } from "@/components/form";
 
-// Without this, Next statically prerenders this page at build time (no
-// cookies/headers/dynamic params in use) - meaning it'd freeze to
-// whatever existed in the DB when it was BUILT and never show new
-// submissions without a full rebuild+redeploy. Also matters for the
-// deploy server specifically: a static DB read at build time would fail
-// there if Postgres isn't reachable during the build step.
+// Authorization, not just authentication: only ever queries sheets
+// owned by the logged-in user (session.user.id) - never trusts a
+// client-supplied id for "whose sheets to show".
 export const dynamic = "force-dynamic";
 
-const AI_LABELS: Record<string, string> = {
-  none: "No AI",
-  data_processing: "AI: data processing",
-  design_assistance: "AI: design assistance",
-  code_generation: "AI: code generation",
-  content_generation: "AI: content generation",
-  other: "AI: other",
-};
+export default async function MySheetsPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-// No auth check - public browsing, deliberately.
-export default async function BrowsePage() {
   const items = await db
     .select()
     .from(sheets)
+    .where(eq(sheets.ownerId, session.user.id))
     .orderBy(desc(sheets.createdAt));
 
   return (
     <PageContainer>
-      <PageHeading>Browse</PageHeading>
+      <div className="mb-6 flex items-center justify-between">
+        <PageHeading>My sheets</PageHeading>
+        <Link href="/submit">
+          <Button variant="secondary">Submit a sheet</Button>
+        </Link>
+      </div>
 
       {items.length === 0 && (
         <p className="text-gray-500 dark:text-gray-400">
-          Nothing submitted yet.
+          You haven&apos;t submitted anything yet.
         </p>
       )}
 
@@ -53,10 +52,6 @@ export default async function BrowsePage() {
                   {item.summary}
                 </p>
               )}
-              <div className="mt-2 flex gap-2 text-xs text-gray-400 dark:text-gray-500">
-                {item.license && <span>{item.license}</span>}
-                <span>{AI_LABELS[item.aiInvolvement] ?? item.aiInvolvement}</span>
-              </div>
             </Link>
           </li>
         ))}

@@ -10,26 +10,23 @@ export default async function Home() {
     <PageContainer>
       <PageHeading>Open Vis Framework</PageHeading>
       <p className="mb-8 text-gray-600 dark:text-gray-400">
-        Submit, browse, and curate information visualization projects.
+        An open registration platform for documenting, sharing, and
+        scrutinizing data visualizations — their data provenance, design
+        rationale, known limitations, and the role AI played in making them.
       </p>
 
       <div className="flex gap-3">
         <Link href="/browse">
-          <Button variant="secondary">Browse</Button>
+          <Button variant="secondary">Browse sheets</Button>
         </Link>
         {session?.user ? (
           <Link href="/submit">
-            <Button>Submit an artifact</Button>
+            <Button>Submit a sheet</Button>
           </Link>
         ) : (
-          <>
-            <Link href="/login">
-              <Button>Log in</Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="secondary">Register</Button>
-            </Link>
-          </>
+          <Link href="/register">
+            <Button>Get started</Button>
+          </Link>
         )}
       </div>
     </PageContainer>
