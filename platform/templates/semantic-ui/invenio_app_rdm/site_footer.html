@@ -1,0 +1,10 @@
+{#
+  Open Vis Framework - drop the stock "Powered by InvenioRDM" bottom
+  footer bar entirely (the right-hand column is a language-selector
+  dropdown, only rendered if I18N_LANGUAGES is non-empty - it isn't
+  here, see invenio.cfg - so there's nothing worth keeping in this
+  file either). Overrides invenio_app_rdm's own site_footer.html,
+  included from page.html's `footer_bottom` block. Same
+  templates/semantic-ui/<package>/<template>.html override path
+  convention as footer.html - see docs/ROADMAP.md Migration Phase 10.
+#}

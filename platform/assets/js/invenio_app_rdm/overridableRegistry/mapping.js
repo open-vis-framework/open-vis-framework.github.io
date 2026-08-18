@@ -52,13 +52,17 @@ const RecordsResultsListItemWithThumbnail = ({
   const uniqueViews = _get(result, "stats.all_versions.unique_views", 0);
   const uniqueDownloads = _get(result, "stats.all_versions.unique_downloads", 0);
   const publishingInformation = _get(result, "ui.publishing_information.journal", "");
-  const thumbnailUrl = _get(result, "links.thumbnails.250", null);
+  // "medium" (300px) rather than the initial "tiny" (80px) - the small
+  // size read as barely-there next to a full search-result row. Source
+  // resolution bumped to match (750, not 250) so it isn't visibly
+  // upscaled/blurry at the larger display size.
+  const thumbnailUrl = _get(result, "links.thumbnails.750", null);
   const viewLink = `/records/${result.id}`;
 
   return (
     <Item key={result.id}>
       {thumbnailUrl && (
-        <Item.Image size="tiny" src={thumbnailUrl} as="a" href={viewLink} alt="" />
+        <Item.Image size="medium" src={thumbnailUrl} as="a" href={viewLink} alt="" />
       )}
       <Item.Content>
         <Item.Extra className="labels-actions">
