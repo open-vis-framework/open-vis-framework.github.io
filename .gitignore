@@ -42,6 +42,3 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 .idea/
-
-# local disk-backed upload storage (pnpm dev) - see src/lib/storage.ts
-apps/platform/uploads/
