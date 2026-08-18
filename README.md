@@ -35,5 +35,6 @@ own `invenio-cli` tooling, not pnpm).
 ## Status
 
 See `docs/ROADMAP.md` for what's done and what's still known-incomplete
-(auth is local-login only for now, no OAuth; no search facets yet), and
+(auth is local-login only for now; chart type still needs a controlled
+multi-value taxonomy before it can be faceted), and
 `CONTRIBUTING.md` for the current state of the contribution workflow.

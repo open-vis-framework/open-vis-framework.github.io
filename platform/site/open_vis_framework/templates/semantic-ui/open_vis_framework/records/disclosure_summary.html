@@ -1,0 +1,37 @@
+{% set ovf_summary = ovf_disclosure_summary(record_ui, files) %}
+{% set ovf_version_notes = record_ui.get('custom_fields', {}).get('ovf:version_notes') %}
+
+<section id="ovf-disclosure-summary" class="ui segment rel-mt-2" aria-labelledby="ovf-disclosure-title">
+  <div class="ovf-disclosure-heading">
+    <div>
+      <p class="ovf-disclosure-eyebrow">VISUALIZATION SHEET</p>
+      <h2 id="ovf-disclosure-title" class="ui header mt-0 mb-5">Documentation coverage</h2>
+    </div>
+    <span class="ui large label ovf-disclosure-score">
+      {{ ovf_summary.completed }}/{{ ovf_summary.total }} documented
+    </span>
+  </div>
+
+  <p class="text-muted mt-0">
+    Shows whether key metadata was supplied. It is not an independent verification of accuracy or reproducibility.
+  </p>
+
+  <ul class="ovf-disclosure-grid">
+    {% for item in ovf_summary.dimensions %}
+      <li class="ovf-disclosure-item {{ 'is-complete' if item.complete else 'is-missing' }}">
+        <i class="{{ 'check circle' if item.complete else 'minus circle' }} outline icon" aria-hidden="true"></i>
+        <span>
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.detail }}</small>
+        </span>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if ovf_version_notes %}
+    <div class="ovf-version-note">
+      <h3 class="ui small header mb-5">What changed in this version</h3>
+      <p class="mt-0 mb-0">{{ ovf_version_notes }}</p>
+    </div>
+  {% endif %}
+</section>

@@ -5,12 +5,14 @@ from hashlib import sha256
 from flask import Blueprint, Response, abort, current_app, request
 
 from .badges import PublicRecordNotFound, get_badge_state, render_badge_svg
+from .disclosure import build_disclosure_summary
 
 #
 # Registration
 #
 def create_blueprint(app):
     """Register blueprint routes on app."""
+    app.jinja_env.globals["ovf_disclosure_summary"] = build_disclosure_summary
     blueprint = Blueprint(
         "open_vis_framework",
         __name__,

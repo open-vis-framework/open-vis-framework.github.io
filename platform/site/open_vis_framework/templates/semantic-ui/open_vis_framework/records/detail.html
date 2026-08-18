@@ -1,0 +1,6 @@
+{% extends "invenio_app_rdm/records/detail.html" %}
+
+{% block record_content %}
+  {{ super() }}
+  {% include "open_vis_framework/records/disclosure_summary.html" %}
+{% endblock record_content %}

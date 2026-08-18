@@ -37,15 +37,19 @@ name: Deploy platform to self-hosted server
 # db_data/uploaded_data/search_data.
 
 on:
-  push:
+  # Production follows a successful CI run for the exact main-branch commit.
+  # This avoids deploying in parallel with the tests that are meant to guard it.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "platform/**"
-      - ".github/workflows/deploy-platform.yml"
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1
@@ -66,7 +70,7 @@ jobs:
             set -e
             cd ~/open-vis-framework-src
             git fetch origin main
-            git reset --hard origin/main
+            git reset --hard "${{ github.event.workflow_run.head_sha || 'origin/main' }}"
             cd platform
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
@@ -74,6 +78,21 @@ jobs:
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               build web-api worker scheduler
+            # Update and verify the new optional mapping from the newly built
+            # image while the current production containers are still serving.
+            docker compose --file docker-compose.full.yml \
+              --file docker-compose.prod-override.yml \
+              run --rm --no-deps web-ui invenio rdm-records custom-fields init \
+              --field-name ovf:version_notes
+            FIELD_CHECK=$(docker compose --file docker-compose.full.yml \
+              --file docker-compose.prod-override.yml \
+              run --rm --no-deps web-ui invenio rdm-records custom-fields exists \
+              --field-name ovf:version_notes)
+            echo "${FIELD_CHECK}"
+            case "${FIELD_CHECK}" in
+              *"Field ovf:version_notes exists"*) ;;
+              *) echo "ERROR: ovf:version_notes mapping verification failed" >&2; exit 1 ;;
+            esac
             # Force-recreate static_data so Docker's own (reliable,
             # well-documented) "auto-populate an empty named volume from
             # the image on first mount" behavior does the work, instead
@@ -100,3 +119,17 @@ jobs:
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               up -d cache db mq search web-ui web-api worker scheduler
+
+      - name: Verify public record and badge routes
+        run: |
+          set -e
+          RECORD_ID=$(curl --fail --silent --show-error --retry 12 \
+            --retry-all-errors --retry-delay 5 \
+            'https://open-vis-framework.duckdns.org/api/records?size=1' | \
+            python -c 'import json,sys; print(json.load(sys.stdin)["hits"]["hits"][0]["id"])')
+          curl --fail --silent --show-error --retry 12 --retry-all-errors \
+            --retry-delay 5 --output /dev/null \
+            "https://open-vis-framework.duckdns.org/records/${RECORD_ID}"
+          curl --fail --silent --show-error --retry 12 --retry-all-errors \
+            --retry-delay 5 --output /dev/null \
+            "https://open-vis-framework.duckdns.org/badges/records/${RECORD_ID}.svg"

@@ -10,8 +10,8 @@ Current phase: **cut over to `platform/` (InvenioRDM)** — see
 `apps/platform` app has been deleted (Migration Phase 8); its history is
 kept below ("Phases 0-9") for context, same as ADR 0004 did for the
 schema it replaced. Known-incomplete right now: no OAuth (local login
-only), no search facets (Migration Phases 4 and 6 were both explicitly
-skipped/deferred) - see those phases below for what to pick up.
+only), and chart type remains free text rather than a controlled,
+multi-valued facet - see the phases below for what to pick up.
 
 ## InvenioRDM migration (current work — see ADR 0005)
 
@@ -95,19 +95,22 @@ skipped/deferred) - see those phases below for what to pick up.
       Invenio theme/layout, functionally correct per this phase's
       original scope, not a visual redesign - that's a separate,
       explicitly-deferred follow-up, not blocking anything else.
-- [ ] **Migration Phase 6 — Search & browse** — *skipped for now*
-      (explicit call). Native OpenSearch-backed faceting (license, AI
-      involvement, keywords) replacing the old `ilike` browse query is
-      still the eventual plan; revisit after the placeholder custom
-      fields from Migration Phase 3 get their real (non-placeholder)
-      pass, since facet quality depends on that.
+- [x] **Migration Phase 6 — Search & browse** — minimal 80/20 pass landed
+      in Migration Phase 12: the public search now exposes topic, license,
+      and AI-involvement facets. AI involvement uses stable controlled values
+      while retaining the existing scalar string mapping. Chart type is
+      deliberately not faceted yet: its current
+      comma-separated free text would produce misleading whole-string buckets.
 - [x] **Migration Phase 7 — Deploy pipeline**: `.github/workflows/deploy-platform.yml`
       (took over the name/role of the old Next.js deploy workflow, which
       it replaced) — SSH+Compose, reuses the same `DEPLOY_SSH_KEY` secret.
       Originally targeted the scratch POC domain via a POC-specific
       override; at Migration Phase 8 that override was replaced by
       `platform/docker-compose.prod-override.yml` (real domain,
-      `open-vis-framework.duckdns.org`). Does not yet automate one-time
+      `open-vis-framework.duckdns.org`). Production now follows successful
+      CI for the exact commit, verifies optional custom-field mappings before
+      switching containers, and smoke-tests a record and badge afterward.
+      It does not yet automate one-time
       DB/index/role init (run once by hand over SSH at cutover, matching
       how the Phase 2 POC was set up) - a fresh Postgres volume needs that
       same manual step again.
@@ -343,12 +346,14 @@ replacement, not a backfill.
   and served with a one-hour public cache plus an ETag, so a README or
   project page can keep one permanent image URL while its label changes.
   Rankings use the existing Invenio Stats data rather than counting badge
-  loads: calendar-week, robot-filtered, non-API unique record views are
-  summed by parent record, so views across record versions stay together.
+  loads: the native daily Invenio unique-view counts are summed over the
+  calendar week by parent record, so views across record versions stay
+  together. This is a weekly traffic score, not a claim that a returning
+  visitor can be deduplicated across days.
   Ties share a competition rank. To avoid an inflated-looking `#1 of 3`,
   the badge stays a useful `Visualization Sheet · Listed` registry badge
   until the catalogue has at least 10 public records and the sheet has at
-  least 5 weekly unique views; both thresholds are instance config.
+  least 5 weekly traffic-score views; both thresholds are instance config.
   Qualified badges show current weekly rank and peak rank. Weekly snapshots
   live in Redis for an hour; peak ranks are updated atomically in the
   persistent OpenSearch volume (`ovf-badge-rank-peaks-v1`), avoiding a new
@@ -361,6 +366,23 @@ replacement, not a backfill.
   instance blueprint is registered on the UI container; and the copy buttons
   use a self-hosted Webpack entry rather than inline JavaScript because the
   production CSP deliberately blocks inline scripts.
+
+- [x] **Migration Phase 12 — Reader disclosure, resource links, and revision
+  notes**: the public record page now includes a six-area documentation
+  coverage summary (visualization, sources, transformations, visual design,
+  AI involvement, limitations). The score only reports whether metadata was
+  supplied and explicitly disclaims independent verification. The existing
+  visualization URL plus native typed related identifiers are promoted into
+  an external-resources panel for visualization, data, code, and analysis
+  links, with HTTP(S)-only URL handling and deduplication. AI involvement is
+  now a controlled deposit-form dropdown and public browse facet alongside
+  native topic and license facets. A version-specific `ovf:version_notes`
+  field records “What changed?”; OVF replaces only Invenio's custom-fields
+  service component so the prior note is cleared when a new-version draft is
+  created. CI runs the focused platform unit tests after resolving the locked
+  environment; only a successful run deploys that exact commit. Deploy
+  initializes and verifies the optional OpenSearch mapping before switching
+  containers, then smoke-tests public record and badge routes.
 
 ## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
@@ -421,7 +443,8 @@ replacement, not a backfill.
 - MinIO/S3 storage (disk-backed volume, behind a `Storage` interface so
   this stays a contained future change if it's ever needed).
 - Moderation/review workflow on submissions.
-- Sheet versioning/revision history (arXiv-style).
+- Field-level version diffs and collaborative revision review (the native
+  version list plus OVF-authored per-version change notes are now present).
 - Structured (non-free-text) sub-fields within sheet sections — e.g. a
   proper repeatable data-sources list instead of one free-text block.
 

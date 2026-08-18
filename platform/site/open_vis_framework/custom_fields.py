@@ -25,15 +25,16 @@ custom field needed):
   native file uploads (invenio-files-rest), not a custom field.
 
 TODO (later, non-placeholder pass): tighten validation (e.g. URL format
-on ``viz_url``), decide on ``aiInvolvement``'s fixed vocabulary (was a
-Postgres enum: none/data_processing/design_assistance/code_generation/
-content_generation/other - currently just free text here), consider
-``KeywordCF``/multiple=True for genuinely multi-valued fields like
-``chart_types``.
+on ``viz_url``). AI involvement now uses a controlled scalar vocabulary
+in both the UI and service schema. Also consider ``KeywordCF``/multiple=True
+for genuinely multi-valued fields like ``chart_types``.
 """
 
 from invenio_i18n import lazy_gettext as _
 from invenio_records_resources.services.custom_fields import TextCF
+from marshmallow import validate
+
+from .facets import AI_INVOLVEMENT_OPTIONS
 
 OVF_NAMESPACES = {
     "ovf": "",
@@ -48,6 +49,9 @@ OVF_CUSTOM_FIELDS = [
     # for non-real identifiers, so it's visually recognizable as
     # DOI-like without claiming to actually be one.
     TextCF(name="ovf:voi"),
+    # --- Version-specific release note (cleared when a new version draft is
+    # created by OVFCustomFieldsComponent) ---
+    TextCF(name="ovf:version_notes"),
     # --- The visualization itself (file case is native uploads; this
     # is the alternative "hosted/interactive visualization" case) ---
     TextCF(name="ovf:viz_url"),
@@ -64,7 +68,15 @@ OVF_CUSTOM_FIELDS = [
     TextCF(name="ovf:encoding_description"),
     TextCF(name="ovf:design_rationale"),
     # --- AI involvement disclosure ---
-    TextCF(name="ovf:ai_involvement", use_as_filter=True),
+    TextCF(
+        name="ovf:ai_involvement",
+        use_as_filter=True,
+        field_args={
+            "validate": validate.OneOf(
+                [option["id"] for option in AI_INVOLVEMENT_OPTIONS]
+            )
+        },
+    ),
     TextCF(name="ovf:ai_description"),
     TextCF(name="ovf:ai_human_review"),
     # --- Limitations ---
@@ -72,6 +84,31 @@ OVF_CUSTOM_FIELDS = [
 ]
 
 OVF_CUSTOM_FIELDS_UI = [
+    {
+        "section": _("Version note"),
+        # Rendered prominently by OVF's disclosure summary instead of being
+        # repeated in Invenio's generic Additional details panel.
+        "hide_from_landing_page": True,
+        "fields": [
+            {
+                "field": "ovf:version_notes",
+                "ui_widget": "TextArea",
+                "props": {
+                    "label": _("What changed in this version?"),
+                    "placeholder": _(
+                        "Briefly describe corrections, data updates, design "
+                        "changes, or other differences from the previous version."
+                    ),
+                    "description": _(
+                        "This note belongs only to this version and is shown "
+                        "on its public Visualization Sheet."
+                    ),
+                    "icon": "history",
+                    "rows": 3,
+                },
+            },
+        ],
+    },
     {
         "section": _("Identifier"),
         "fields": [
@@ -229,19 +266,19 @@ OVF_CUSTOM_FIELDS_UI = [
         "fields": [
             {
                 "field": "ovf:ai_involvement",
-                "ui_widget": "Input",
+                "ui_widget": "Dropdown",
                 "props": {
                     "label": _("AI involvement"),
-                    "placeholder": (
-                        "none / data_processing / design_assistance / "
-                        "code_generation / content_generation / other"
-                    ),
+                    "placeholder": _("Select AI involvement"),
                     "description": _(
-                        "Placeholder free text for now - was a fixed "
-                        "dropdown in the previous schema; revisit as a "
-                        "constrained vocabulary in a later pass."
+                        "Choose the primary way AI was involved. Add details "
+                        "in the description below."
                     ),
                     "icon": "robot",
+                    "options": AI_INVOLVEMENT_OPTIONS,
+                    "search": False,
+                    "multiple": False,
+                    "clearable": True,
                 },
             },
             {

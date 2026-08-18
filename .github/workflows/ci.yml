@@ -25,9 +25,8 @@ jobs:
       - run: pnpm build
 
   install-platform:
-    # Sanity check only for now: does platform/'s uv.lock still resolve
-    # cleanly? No lint/test step yet - platform/ has no tests written
-    # (see docs/ROADMAP.md). Expand this job once that changes.
+    # Resolve the locked Invenio environment, then run the instance's focused
+    # service/config tests without requiring a separate pytest dependency.
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,3 +39,5 @@ jobs:
           python-version: "3.14"
 
       - run: uv sync --frozen
+
+      - run: uv run python -m unittest discover -s site/tests -v
