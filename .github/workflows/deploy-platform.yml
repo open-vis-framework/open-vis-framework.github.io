@@ -15,6 +15,20 @@ name: Deploy platform to self-hosted server
 # cutover, matching how Migration Phase 2's POC was set up. A fresh
 # Postgres volume (new server, disaster recovery, etc.) needs that same
 # manual step again - not automated here yet.
+#
+# Real finding (Migration Phase 10 redo, docs/ROADMAP.md): docker-compose.full.yml's
+# `static_data` named volume is mounted over /opt/invenio/var/instance/static
+# on both `web-ui` and `frontend`. Docker only auto-populates a named
+# volume from image content the *first* time it's created empty - every
+# `build` + `up -d` since then leaves the old volume content in place,
+# shadowing whatever the fresh image now has baked into that path (a
+# Dockerfile `COPY ./static/...` alone is not enough). Concretely: a
+# new static image (logo, etc.) landed in the image, but never appeared
+# live, because the pre-existing volume's old file listing just didn't
+# include it. Fixed below by explicitly re-syncing the volume from the
+# freshly-built image before `up -d`. Safe to do unconditionally -
+# static_data only ever holds regenerable build output (webpack/collect
+# results), never user data, unlike db_data/uploaded_data/search_data.
 
 on:
   push:
@@ -45,6 +59,22 @@ jobs:
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               build web-api worker scheduler
+            # Re-sync static_data from the freshly-built image: named
+            # volumes aren't refreshed by `build`/`up` on their own once
+            # they already exist (see comment above). Mounting the
+            # volume at a path other than the image's own static/ dir
+            # keeps the image's baked-in files visible inside this
+            # container to copy from. Resolve the actual (project-
+            # prefixed) volume name via Compose's own labels rather than
+            # assuming a naming convention.
+            STATIC_VOLUME=$(docker volume ls \
+              --filter label=com.docker.compose.project=platform \
+              --filter label=com.docker.compose.volume=static_data \
+              --format '{{.Name}}')
+            docker run --rm \
+              -v "${STATIC_VOLUME}:/dst" \
+              open-vis-framework:latest \
+              sh -c "cp -a /opt/invenio/var/instance/static/. /dst/"
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               up -d cache db mq search web-ui web-api worker scheduler
