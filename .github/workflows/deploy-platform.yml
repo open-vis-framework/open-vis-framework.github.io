@@ -47,6 +47,15 @@ jobs:
           host: 89.58.55.170
           username: admin
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # Without this, appleboy/ssh-action does not reliably fail the
+          # GitHub Actions job just because the remote script's `set -e`
+          # aborted partway through - a broken deploy step can silently
+          # report green. Found the hard way: the static_data re-sync
+          # step below (first version, without this flag and without
+          # its own error check) very likely failed silently on its
+          # first real deploy - the job showed success but the site's
+          # static files didn't change.
+          script_stop: true
           script: |
             set -e
             cd ~/open-vis-framework-src
@@ -66,15 +75,22 @@ jobs:
             # keeps the image's baked-in files visible inside this
             # container to copy from. Resolve the actual (project-
             # prefixed) volume name via Compose's own labels rather than
-            # assuming a naming convention.
+            # assuming a naming convention, and fail loudly (not with a
+            # silently-broken `-v :/dst`) if that doesn't resolve to
+            # exactly one volume.
             STATIC_VOLUME=$(docker volume ls \
               --filter label=com.docker.compose.project=platform \
               --filter label=com.docker.compose.volume=static_data \
               --format '{{.Name}}')
+            echo "Resolved static_data volume: '${STATIC_VOLUME}'"
+            if [ -z "${STATIC_VOLUME}" ] || [ "$(echo "${STATIC_VOLUME}" | wc -l)" -ne 1 ]; then
+              echo "ERROR: expected exactly one static_data volume, got: '${STATIC_VOLUME}'" >&2
+              exit 1
+            fi
             docker run --rm \
               -v "${STATIC_VOLUME}:/dst" \
               open-vis-framework:latest \
-              sh -c "cp -a /opt/invenio/var/instance/static/. /dst/"
+              sh -c "cp -a /opt/invenio/var/instance/static/. /dst/ && echo 'static_data refreshed, now contains:' && ls /dst/images/"
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               up -d cache db mq search web-ui web-api worker scheduler
