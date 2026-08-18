@@ -1,0 +1,83 @@
+"""Tests for Visualization Sheet badges."""
+
+import unittest
+from datetime import datetime, timezone
+from unittest.mock import patch
+
+from flask import Flask
+
+from open_vis_framework.badges import (
+    BadgeState,
+    _calendar_week_start,
+    _competition_rankings,
+    render_badge_svg,
+)
+from open_vis_framework.views import create_blueprint
+
+
+class BadgeLogicTest(unittest.TestCase):
+    """Exercise the ranking and SVG logic without external services."""
+
+    def test_calendar_week_starts_on_monday_utc(self):
+        """Calendar ranking windows begin at Monday midnight UTC."""
+        now = datetime(2026, 8, 18, 14, 30, tzinfo=timezone.utc)
+        self.assertEqual(
+            _calendar_week_start(now),
+            datetime(2026, 8, 17, tzinfo=timezone.utc),
+        )
+
+    def test_competition_ranking_shares_positions_for_ties(self):
+        """Equal traffic produces equal ranks and leaves the next place open."""
+        self.assertEqual(
+            _competition_rankings({"alpha": 9, "beta": 9, "gamma": 4}),
+            {"alpha": 1, "beta": 1, "gamma": 3},
+        )
+
+    def test_ranked_svg_contains_current_and_peak_rank(self):
+        """A qualified record displays both live and best achieved ranks."""
+        svg = render_badge_svg(BadgeState(current_rank=3, peak_rank=1))
+        self.assertIn("#3", svg)
+        self.assertIn("PEAK #1", svg)
+        self.assertIn("Visualization this week", svg)
+
+    def test_unranked_svg_is_still_a_registry_badge(self):
+        """Low-activity records receive a useful non-ranking badge."""
+        svg = render_badge_svg(BadgeState())
+        self.assertIn("Visualization Sheet", svg)
+        self.assertIn("LISTED", svg)
+        self.assertNotIn("PEAK", svg)
+
+
+class BadgeEndpointTest(unittest.TestCase):
+    """Exercise response headers on the public SVG endpoint."""
+
+    def setUp(self):
+        """Create a minimal Flask app around the instance blueprint."""
+        self.app = Flask(__name__)
+        self.app.config["OVF_BADGE_CACHE_SECONDS"] = 1800
+        self.app.register_blueprint(create_blueprint(self.app))
+        self.client = self.app.test_client()
+
+    @patch(
+        "open_vis_framework.views.get_badge_state",
+        return_value=BadgeState(current_rank=2, peak_rank=1),
+    )
+    def test_svg_is_publicly_cacheable_and_conditional(self, _state):
+        """Badge responses support CDN caching and ETag revalidation."""
+        response = self.client.get("/api/badges/records/example.svg")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "image/svg+xml")
+        self.assertIn("public, max-age=1800", response.headers["Cache-Control"])
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], "*")
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertTrue(response.headers["ETag"])
+
+        conditional = self.client.get(
+            "/api/badges/records/example.svg",
+            headers={"If-None-Match": response.headers["ETag"]},
+        )
+        self.assertEqual(conditional.status_code, 304)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,88 @@
+{% if record_ui["is_published"] and not is_preview and record_ui["access"]["record"] == "public" %}
+  {% set badge_path = url_for('open_vis_framework.record_badge', record_id=record_ui['id']) %}
+  {% set badge_url = config.SITE_UI_URL.rstrip('/') ~ badge_path %}
+  {% set record_url = record_ui['links']['self_html'] %}
+  <section
+    id="ovf-embed-badge"
+    class="ui segment rdm-sidebar sidebar-container"
+    aria-labelledby="ovf-embed-badge-title"
+  >
+    <h2 id="ovf-embed-badge-title" class="ui small header mb-10">
+      <i class="certificate icon" aria-hidden="true"></i>
+      <span class="content">Open Vis badge</span>
+    </h2>
+
+    <p class="text-muted mt-0">
+      Embed this live badge on a project page or README. It updates automatically.
+    </p>
+
+    <a
+      class="ovf-badge-preview"
+      href="{{ record_url }}"
+      aria-label="View this Visualization Sheet on Open Vis Framework"
+    >
+      <img
+        src="{{ badge_url }}"
+        width="290"
+        height="55"
+        loading="lazy"
+        alt="Open Vis Framework Visualization Sheet badge"
+      >
+    </a>
+
+    <details class="ovf-badge-embed-options">
+      <summary>Embed badge</summary>
+
+      <label for="ovf-badge-markdown">Markdown</label>
+      <div class="ovf-badge-copy-row">
+        <textarea id="ovf-badge-markdown" rows="3" readonly>[![Open Vis Framework Visualization Sheet]({{ badge_url }})]({{ record_url }})</textarea>
+        <button
+          type="button"
+          class="ui mini basic button ovf-copy-badge"
+          data-copy-target="ovf-badge-markdown"
+        >Copy</button>
+      </div>
+
+      <label for="ovf-badge-html">HTML</label>
+      <div class="ovf-badge-copy-row">
+        <textarea id="ovf-badge-html" rows="4" readonly><a href="{{ record_url }}"><img src="{{ badge_url }}" width="290" height="55" alt="Open Vis Framework Visualization Sheet badge"></a></textarea>
+        <button
+          type="button"
+          class="ui mini basic button ovf-copy-badge"
+          data-copy-target="ovf-badge-html"
+        >Copy</button>
+      </div>
+      <p class="ovf-badge-copy-status" role="status" aria-live="polite"></p>
+    </details>
+  </section>
+
+  <script>
+    (() => {
+      const panel = document.getElementById("ovf-embed-badge");
+      if (!panel) return;
+
+      const status = panel.querySelector(".ovf-badge-copy-status");
+      panel.querySelectorAll(".ovf-copy-badge").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const field = document.getElementById(button.dataset.copyTarget);
+          if (!field) return;
+
+          try {
+            await navigator.clipboard.writeText(field.value);
+          } catch (_) {
+            field.focus();
+            field.select();
+            document.execCommand("copy");
+          }
+
+          status.textContent = "Embed code copied.";
+          button.textContent = "Copied";
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+            status.textContent = "";
+          }, 1800);
+        });
+      });
+    })();
+  </script>
+{% endif %}

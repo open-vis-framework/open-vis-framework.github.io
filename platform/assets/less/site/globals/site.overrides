@@ -1,0 +1,68 @@
+/*******************************
+  Open Vis record badge panel
+ *******************************/
+
+#ovf-embed-badge .ovf-badge-preview {
+  display: block;
+  margin: 0.85rem 0 0.5rem;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+#ovf-embed-badge .ovf-badge-preview img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+#ovf-embed-badge .ovf-badge-embed-options {
+  border-top: 1px solid rgba(34, 36, 38, 0.12);
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+}
+
+#ovf-embed-badge .ovf-badge-embed-options summary {
+  color: @brandColor;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#ovf-embed-badge .ovf-badge-embed-options label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0.9rem 0 0.35rem;
+}
+
+#ovf-embed-badge .ovf-badge-copy-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.45rem;
+}
+
+#ovf-embed-badge .ovf-badge-copy-row textarea {
+  background: #f7f7fb;
+  border: 1px solid rgba(34, 36, 38, 0.18);
+  border-radius: @defaultBorderRadius;
+  box-sizing: border-box;
+  color: #27225f;
+  flex: 1 1 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  min-width: 0;
+  padding: 0.55rem;
+  resize: vertical;
+}
+
+#ovf-embed-badge .ovf-badge-copy-row .button {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+#ovf-embed-badge .ovf-badge-copy-status {
+  color: #2f855a;
+  font-size: 0.8rem;
+  min-height: 1.2em;
+  margin: 0.45rem 0 0;
+}

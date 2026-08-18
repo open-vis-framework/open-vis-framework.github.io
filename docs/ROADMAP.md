@@ -336,6 +336,27 @@ replacement, not a backfill.
       GitHub Actions job, which is very likely what actually happened
       on the first (silently ineffective) re-sync attempt.
 
+- [x] **Migration Phase 11 — Embeddable Visualization Sheet badges**:
+  every public published record now exposes a stable SVG at
+  `/api/badges/records/<record-id>.svg`, with a copyable Markdown/HTML
+  embed panel on the record page. The SVG is deliberately self-contained
+  and served with a one-hour public cache plus an ETag, so a README or
+  project page can keep one permanent image URL while its label changes.
+  Rankings use the existing Invenio Stats data rather than counting badge
+  loads: calendar-week, robot-filtered, non-API unique record views are
+  summed by parent record, so views across record versions stay together.
+  Ties share a competition rank. To avoid an inflated-looking `#1 of 3`,
+  the badge stays a useful `Visualization Sheet · Listed` registry badge
+  until the catalogue has at least 10 public records and the sheet has at
+  least 5 weekly unique views; both thresholds are instance config.
+  Qualified badges show current weekly rank and peak rank. Weekly snapshots
+  live in Redis for an hour; peak ranks are updated atomically in the
+  persistent OpenSearch volume (`ovf-badge-rank-peaks-v1`), avoiding a new
+  SQL table/migration for this small derived-data feature. Badge requests
+  read record data through the service layer and explicitly reject drafts,
+  deleted records, and non-public records; unlike a landing-page request,
+  they do not emit a record-view event.
+
 ## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
 - [x] **Phase 0 — Docs**: this file, ADR 0003, `docs/ops/access.md`.
