@@ -57,15 +57,6 @@ jobs:
           host: 89.58.55.170
           username: admin
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          # Without this, appleboy/ssh-action does not reliably fail the
-          # GitHub Actions job just because the remote script's `set -e`
-          # aborted partway through - a broken deploy step can silently
-          # report green. Found the hard way: the static_data re-sync
-          # step below (first version, without this flag and without
-          # its own error check) very likely failed silently on its
-          # first real deploy - the job showed success but the site's
-          # static files didn't change.
-          script_stop: true
           script: |
             set -e
             cd ~/open-vis-framework-src
@@ -82,12 +73,12 @@ jobs:
             # image while the current production containers are still serving.
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
-              run --rm --no-deps web-ui invenio rdm-records custom-fields init \
-              --field-name ovf:version_notes
+              run --rm --no-deps web-ui \
+              "invenio rdm-records custom-fields init --field-name ovf:version_notes"
             FIELD_CHECK=$(docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
-              run --rm --no-deps web-ui invenio rdm-records custom-fields exists \
-              --field-name ovf:version_notes)
+              run --rm --no-deps web-ui \
+              "invenio rdm-records custom-fields exists --field-name ovf:version_notes")
             echo "${FIELD_CHECK}"
             case "${FIELD_CHECK}" in
               *"Field ovf:version_notes exists"*) ;;
