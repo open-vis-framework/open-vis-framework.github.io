@@ -25,10 +25,16 @@ name: Deploy platform to self-hosted server
 # Dockerfile `COPY ./static/...` alone is not enough). Concretely: a
 # new static image (logo, etc.) landed in the image, but never appeared
 # live, because the pre-existing volume's old file listing just didn't
-# include it. Fixed below by explicitly re-syncing the volume from the
-# freshly-built image before `up -d`. Safe to do unconditionally -
-# static_data only ever holds regenerable build output (webpack/collect
-# results), never user data, unlike db_data/uploaded_data/search_data.
+# include it. A manual `docker run -v vol:/dst ... cp` re-sync was tried
+# first and did not actually take effect for reasons that weren't
+# diagnosable without a shell on the server (the deploy job reported
+# success, but live content stayed stale regardless). Fixed below by
+# instead dropping the volume and letting Compose recreate it on every
+# deploy, so it re-populates from the freshly-built image via Docker's
+# normal (reliable, well-documented) first-mount behavior. Safe to do
+# unconditionally - static_data only ever holds regenerable build
+# output (webpack/collect results), never user data, unlike
+# db_data/uploaded_data/search_data.
 
 on:
   push:
@@ -68,16 +74,19 @@ jobs:
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               build web-api worker scheduler
-            # Re-sync static_data from the freshly-built image: named
-            # volumes aren't refreshed by `build`/`up` on their own once
-            # they already exist (see comment above). Mounting the
-            # volume at a path other than the image's own static/ dir
-            # keeps the image's baked-in files visible inside this
-            # container to copy from. Resolve the actual (project-
-            # prefixed) volume name via Compose's own labels rather than
-            # assuming a naming convention, and fail loudly (not with a
-            # silently-broken `-v :/dst`) if that doesn't resolve to
-            # exactly one volume.
+            # Force-recreate static_data so Docker's own (reliable,
+            # well-documented) "auto-populate an empty named volume from
+            # the image on first mount" behavior does the work, instead
+            # of a manual copy step. A manual `docker run -v vol:/dst ...
+            # cp` re-sync was tried first and did not actually take
+            # effect for reasons that weren't diagnosable without a shell
+            # on the server (job reported success, content stayed stale
+            # regardless) - this is the more bulletproof alternative.
+            # Containers using the volume must be stopped/removed before
+            # it can be dropped.
+            docker compose --file docker-compose.full.yml \
+              --file docker-compose.prod-override.yml \
+              rm -sf web-ui
             STATIC_VOLUME=$(docker volume ls \
               --filter label=com.docker.compose.project=platform \
               --filter label=com.docker.compose.volume=static_data \
@@ -87,10 +96,7 @@ jobs:
               echo "ERROR: expected exactly one static_data volume, got: '${STATIC_VOLUME}'" >&2
               exit 1
             fi
-            docker run --rm \
-              -v "${STATIC_VOLUME}:/dst" \
-              open-vis-framework:latest \
-              sh -c "cp -a /opt/invenio/var/instance/static/. /dst/ && echo 'static_data refreshed, now contains:' && ls /dst/images/"
+            docker volume rm "${STATIC_VOLUME}"
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               up -d cache db mq search web-ui web-api worker scheduler

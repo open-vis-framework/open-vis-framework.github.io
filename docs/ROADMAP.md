@@ -306,6 +306,35 @@ replacement, not a backfill.
       surviving BuildKit's multi-stage cache) ships together with this
       fix and should make the production build match local behavior
       this time.
+    - **This wasn't the whole story.** After deploying the above, the
+      logo and thumbnail bundle *still* didn't show up live (confirmed
+      by fetching `/static/dist/js/overridable-registry.*.js` directly
+      and diffing its content, not just eyeballing the page) even
+      though the deploy job reported success and the footer override
+      *did* go live. Root cause: `docker-compose.full.yml`'s
+      `static_data` named volume is mounted over
+      `/opt/invenio/var/instance/static` on `web-ui` (and `frontend`,
+      unused in this deployment - Traefik talks to `web-ui` directly,
+      see `docker/uwsgi/uwsgi_ui.ini`'s own comment on that). Docker
+      only auto-populates a named volume from image content the first
+      time it's created empty; every deploy since then leaves the old
+      volume content in place regardless of what's now baked into the
+      image at that path - explains the logo (volume-shadowed) vs.
+      footer (a template, not under the volume mount, so it just
+      worked) split exactly. A first fix attempt (`docker run -v
+      vol:/dst image cp ...` to re-sync the volume from the fresh image)
+      reported success but *still* didn't change anything live, and
+      wasn't diagnosable further without a shell on the server (no
+      `admin` access to the self-hosted box, and `actions/runs/.../jobs/
+      .../logs` needs repo-admin token scope, not just public read).
+      Second attempt, in `.github/workflows/deploy-platform.yml`: drop
+      the volume entirely and let Compose recreate it fresh on every
+      deploy, relying on Docker's ordinary first-mount auto-populate
+      instead of a custom copy step. Also added `script_stop: true` to
+      the `appleboy/ssh-action` step - without it, a `set -e` abort
+      partway through the remote script does not reliably fail the
+      GitHub Actions job, which is very likely what actually happened
+      on the first (silently ineffective) re-sync attempt.
 
 ## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
