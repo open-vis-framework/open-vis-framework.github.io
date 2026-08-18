@@ -37,6 +37,15 @@ FROM base AS app-base
 COPY . .
 COPY --from=builder ${WORKING_DIR}/src/.venv ./.venv
 COPY --from=builder ${INVENIO_INSTANCE_PATH}/static/ ${INVENIO_INSTANCE_PATH}/static/
+# Explicit extra copy for our own static images (logo, etc.): found via
+# real production testing that these don't reliably survive the
+# builder stage's `invenio collect && invenio webpack buildall` (an
+# isolated `--target builder` build has them; the full multi-stage
+# build sometimes doesn't - root cause not fully nailed down, likely a
+# BuildKit multi-stage cache interaction, not a real invenio_assets
+# bug). This line guarantees correctness regardless. See
+# docs/ROADMAP.md Migration Phase 10.
+COPY ./static/images/ ${INVENIO_INSTANCE_PATH}/static/images/
 COPY ./docker/uwsgi/ ${INVENIO_INSTANCE_PATH}
 COPY ./invenio.cfg ${INVENIO_INSTANCE_PATH}
 COPY ./templates/ ${INVENIO_INSTANCE_PATH}/templates/

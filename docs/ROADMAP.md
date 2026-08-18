@@ -215,6 +215,98 @@ replacement, not a backfill.
     demo-record push: `invenio rdm-records custom-fields init` after
     each custom-fields change, then the one-off `invenio shell` script.
 
+- [x] **Migration Phase 10 — More theming: search-result thumbnails,
+  footer, header logo**:
+  - **Search-result thumbnails**: the stock InvenioRDM search-results
+    list component (`RecordsResultsListItem.js`) never renders an image
+    at all, even though every record's API response already includes
+    real IIIF thumbnail links (`result.links.thumbnails`) generated from
+    `files.default_preview`. Overridden via the app's own supported
+    customization point - `platform/assets/js/invenio_app_rdm/overridableRegistry/mapping.js`,
+    registering a replacement for the `"RecordsResultsListItem.layout"`
+    overridable id with a copy of the stock layout plus an `Item.Image`.
+    **Real finding**: only specific known files (like `mapping.js`
+    itself) get collected/symlinked from `platform/assets/js/` into the
+    actual webpack build - an arbitrary sibling file imported from it is
+    *not* automatically picked up (`Cannot find module` at build time).
+    Fixed by inlining the whole component directly in `mapping.js`
+    rather than fighting the collection mechanism.
+  - **Footer**: overrode `invenio_app_rdm/footer.html` (three columns of
+    generic InvenioRDM promotional links - GitHub, Discord, product
+    page - not relevant to this instance) with a minimal one-line
+    version. **Real finding, the one worth remembering**: Invenio's
+    template resolution is *not* plain Flask/Jinja blueprint precedence.
+    `app.jinja_env.loader` is `invenio_app.helpers.ThemeJinjaLoader`,
+    which - for every template name - tries an `APP_THEME`-prefixed
+    version (`semantic-ui/<name>`) across *all* loaders (app + every
+    blueprint) *before* falling back to the unprefixed name across all
+    loaders again. Since the package's own footer template physically
+    lives under a `.../templates/semantic-ui/invenio_app_rdm/footer.html`
+    path, an override placed at the "obvious" unprefixed
+    `platform/templates/invenio_app_rdm/footer.html` is *never reached*
+    - the prefixed pass finds the package's own version first, everywhere.
+    The correct override path is `platform/templates/semantic-ui/invenio_app_rdm/footer.html`
+    (mirroring the exact structure already visible in the cookiecutter's
+    own `platform/site/open_vis_framework/templates/semantic-ui/open_vis_framework/`
+    stub - the same convention, just not obvious until you hit it).
+    Confirmed via `app.jinja_env.get_template(name).filename` - the most
+    reliable way to check which file a template name *actually* resolves
+    to, rather than guessing from HTTP responses. Any future template
+    override in this project should live at
+    `platform/templates/semantic-ui/<package>/<template>.html`, not
+    `platform/templates/<package>/<template>.html`.
+  - **Header logo**: `THEME_LOGO` swapped from the generic
+    `images/invenio-rdm.svg` to a small original mark
+    (`platform/static/images/ovf-logo.svg`) - config-only, no template
+    override needed for this one.
+  - **Local-dev-only gotcha, not a production issue**: newly-added
+    `platform/static/*` and `platform/templates/*` files don't
+    automatically appear under `.venv/var/instance/{static,templates}/`
+    for an already-running `invenio-cli run` - that copy only happens
+    once, during `invenio-cli install`. Had to manually copy + restart
+    the dev server to test locally. **Not a concern for real deploys**:
+    the Dockerfile's own `COPY ./static/ ...` / `COPY ./templates/ ...`
+    steps run fresh on every image build, so this only ever bit local
+    testing, not `docker-compose.full.yml` deploys.
+  - **Correction, next session**: this phase was pushed, broke something
+    in production, and got reverted (`ee06f172` → `42bc5e5`) without a
+    root-cause writeup. Re-verifying by actually running the dev server
+    (not just reading source) found the thumbnail override had in fact
+    *never worked, in dev or prod* - the "verified locally" claim above
+    was wrong. Two real bugs, both now fixed:
+    - **Wrong override id.** `RecordsResultsListItem.layout` is
+      namespaced per search app: `react-searchkit`'s `buildUID()`
+      prefixes it with that app's own `appName`
+      (`InvenioAppRdm.Search.RecordsResultsListItem.layout` on
+      `/search`, `InvenioAppRDM.RecordsList.RecordsResultsListItem.layout`
+      on the frontpage, etc. - grep `const appName = "..."` across
+      `invenio_app_rdm`'s `search/`, `frontpage/`,
+      `collectionRecordsSearch/`, `communityRecordsSearch/`,
+      `user_dashboard/uploads.js` for the full list). There is no
+      unprefixed/global registration point. The original commit
+      registered the bare `"RecordsResultsListItem.layout"` key, which
+      matched nothing - `Overridable` just silently fell through to the
+      stock component instead of erroring, so it looked like it had no
+      effect rather than looking broken. Fixed in `mapping.js` by
+      registering the component under every real appName-prefixed key.
+    - **Logo clipping.** `ovf-logo.svg`'s `viewBox="0 0 160 40"` was too
+      narrow for its own `"Open Vis Framework"` text (18px, starting at
+      x=44) - SVGs clip to their viewBox by default, so the header
+      rendered as `"Open Vis Fran"`. Widened the viewBox to `0 0 260 40`.
+    - Actually confirmed this time: ran `invenio-cli assets build
+      --development` + `invenio-cli run` against the real local Postgres/
+      OpenSearch/Redis/RabbitMQ stack, then screenshotted `/`, `/search`,
+      and a record page via headless Chrome
+      (`google-chrome --headless=new --screenshot`, since
+      claude-in-chrome wasn't available) rather than trusting a
+      source-level read.
+    - The `platform/Dockerfile`'s explicit `COPY ./static/images/`
+      step (added after the original revert, to guard against
+      `invenio collect && invenio webpack buildall` not reliably
+      surviving BuildKit's multi-stage cache) ships together with this
+      fix and should make the production build match local behavior
+      this time.
+
 ## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 
 - [x] **Phase 0 — Docs**: this file, ADR 0003, `docs/ops/access.md`.
