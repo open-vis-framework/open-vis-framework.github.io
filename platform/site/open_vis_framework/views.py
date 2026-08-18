@@ -17,7 +17,7 @@ def create_blueprint(app):
         template_folder="./templates",
     )
 
-    @blueprint.get("/api/badges/records/<record_id>.svg")
+    @blueprint.get("/badges/records/<record_id>.svg")
     def record_badge(record_id):
         """Serve a cacheable, automatically updating record badge."""
         try:

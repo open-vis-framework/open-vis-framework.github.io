@@ -55,34 +55,5 @@
       <p class="ovf-badge-copy-status" role="status" aria-live="polite"></p>
     </details>
   </section>
-
-  <script>
-    (() => {
-      const panel = document.getElementById("ovf-embed-badge");
-      if (!panel) return;
-
-      const status = panel.querySelector(".ovf-badge-copy-status");
-      panel.querySelectorAll(".ovf-copy-badge").forEach((button) => {
-        button.addEventListener("click", async () => {
-          const field = document.getElementById(button.dataset.copyTarget);
-          if (!field) return;
-
-          try {
-            await navigator.clipboard.writeText(field.value);
-          } catch (_) {
-            field.focus();
-            field.select();
-            document.execCommand("copy");
-          }
-
-          status.textContent = "Embed code copied.";
-          button.textContent = "Copied";
-          window.setTimeout(() => {
-            button.textContent = "Copy";
-            status.textContent = "";
-          }, 1800);
-        });
-      });
-    })();
-  </script>
+  {{ webpack['open-vis-framework-record-page.js'] }}
 {% endif %}

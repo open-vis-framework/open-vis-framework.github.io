@@ -338,7 +338,7 @@ replacement, not a backfill.
 
 - [x] **Migration Phase 11 — Embeddable Visualization Sheet badges**:
   every public published record now exposes a stable SVG at
-  `/api/badges/records/<record-id>.svg`, with a copyable Markdown/HTML
+  `/badges/records/<record-id>.svg`, with a copyable Markdown/HTML
   embed panel on the record page. The SVG is deliberately self-contained
   and served with a one-hour public cache plus an ETag, so a README or
   project page can keep one permanent image URL while its label changes.
@@ -355,7 +355,12 @@ replacement, not a backfill.
   SQL table/migration for this small derived-data feature. Badge requests
   read record data through the service layer and explicitly reject drafts,
   deleted records, and non-public records; unlike a landing-page request,
-  they do not emit a record-view event.
+  they do not emit a record-view event. Production verification caught two
+  deployment-specific details before handoff: the route must stay outside
+  `/api/*` because Traefik sends that prefix to the REST container, while the
+  instance blueprint is registered on the UI container; and the copy buttons
+  use a self-hosted Webpack entry rather than inline JavaScript because the
+  production CSP deliberately blocks inline scripts.
 
 ## Phases (completed — `apps/platform`, Next.js, pre-migration history)
 

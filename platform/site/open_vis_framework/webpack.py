@@ -9,7 +9,9 @@ theme = WebpackThemeBundle(
     themes={
         "semantic-ui": dict(
             entry={
-                # Add your webpack entrypoints
+                "open-vis-framework-record-page": (
+                    "./js/open_vis_framework/record_page.js"
+                ),
             },
         ),
     },

@@ -2,6 +2,7 @@
 
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import patch
 
 from flask import Flask
@@ -13,6 +14,9 @@ from open_vis_framework.badges import (
     render_badge_svg,
 )
 from open_vis_framework.views import create_blueprint
+
+
+PACKAGE_ROOT = Path(__file__).parents[1] / "open_vis_framework"
 
 
 class BadgeLogicTest(unittest.TestCase):
@@ -64,7 +68,7 @@ class BadgeEndpointTest(unittest.TestCase):
     )
     def test_svg_is_publicly_cacheable_and_conditional(self, _state):
         """Badge responses support CDN caching and ETag revalidation."""
-        response = self.client.get("/api/badges/records/example.svg")
+        response = self.client.get("/badges/records/example.svg")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.mimetype, "image/svg+xml")
         self.assertIn("public, max-age=1800", response.headers["Cache-Control"])
@@ -73,10 +77,30 @@ class BadgeEndpointTest(unittest.TestCase):
         self.assertTrue(response.headers["ETag"])
 
         conditional = self.client.get(
-            "/api/badges/records/example.svg",
+            "/badges/records/example.svg",
             headers={"If-None-Match": response.headers["ETag"]},
         )
         self.assertEqual(conditional.status_code, 304)
+
+
+class BadgeTemplateSecurityTest(unittest.TestCase):
+    """Guard the badge copy interaction against the site's strict CSP."""
+
+    def test_copy_interaction_uses_self_hosted_bundle(self):
+        """The badge template must not rely on a blocked inline script."""
+        template = (
+            PACKAGE_ROOT
+            / "templates/semantic-ui/open_vis_framework/records/badge.html"
+        ).read_text()
+
+        self.assertNotIn("<script>", template)
+        self.assertIn("webpack['open-vis-framework-record-page.js']", template)
+        self.assertTrue(
+            (
+                PACKAGE_ROOT
+                / "assets/semantic-ui/js/open_vis_framework/record_page.js"
+            ).is_file()
+        )
 
 
 if __name__ == "__main__":
