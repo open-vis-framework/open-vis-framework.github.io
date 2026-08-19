@@ -21,6 +21,13 @@ services:
       - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:6379/3"
       - "INVENIO_SITE_UI_URL=https://127.0.0.1"
       - "INVENIO_SITE_API_URL=https://127.0.0.1/api"
+    # SMTP credentials for account-confirmation / password-reset mail.
+    # Untracked and optional on purpose: without it InvenioRDM's default
+    # MAIL_SUPPRESS_SEND=True stands, so local dev can't mail real users.
+    # Production keeps a real mail.env beside this file - see README.md.
+    env_file:
+      - path: ./mail.env
+        required: false
   frontend:
     build: ./docker/nginx/
     image: open-vis-framework-frontend

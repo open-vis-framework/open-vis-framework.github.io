@@ -75,3 +75,7 @@ data/.minio.sys
 celerybeat-schedule
 celerybeat-schedule-shm
 celerybeat-schedule-wal
+
+# SMTP credentials for outgoing account mail - server-local, never committed
+# (mail.env.example is tracked as the template)
+mail.env
