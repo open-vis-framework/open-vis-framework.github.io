@@ -1,0 +1,13 @@
+{#
+  Overrides Flask-Security's default, which greets with the bare email
+  address and never names the site. Subject line is set separately, via
+  SECURITY_EMAIL_SUBJECT_REGISTER in invenio.cfg.
+-#}
+<p>{{ _('Welcome to %(sitename)s!', sitename=config.THEME_SITENAME) }}</p>
+
+<p>{{ _('An account has been created for %(email)s.', email=user.email) }}</p>
+{% if security.confirmable %}
+<p>{{ _('You can confirm your email address through the link below:') }}</p>
+
+<p><a href="{{ confirmation_link }}">{{ _('Confirm my account') }}</a></p>
+{% endif %}
