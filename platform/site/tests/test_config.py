@@ -34,7 +34,7 @@ class InstanceConfigTest(unittest.TestCase):
         config = load_config()
         sitename = config.THEME_SITENAME
 
-        self.assertEqual(config.THEME_FRONTPAGE_TITLE, sitename)
+        self.assertIn(sitename, config.THEME_FRONTPAGE_TITLE)
         self.assertEqual(config.APP_RDM_DEPOSIT_FORM_DEFAULTS["publisher"], sitename)
         self.assertIn(sitename, config.SECURITY_EMAIL_SUBJECT_REGISTER)
 

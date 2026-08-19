@@ -10,7 +10,7 @@
 #invenio-nav .item.logo a.logo {
   color: #ffffff;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1;
   padding: 0.35rem 0;
