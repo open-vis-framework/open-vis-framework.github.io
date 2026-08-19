@@ -1,5 +1,28 @@
 /*******************************
-  Open Vis record badge panel
+  Header wordmark
+ *******************************/
+
+/* THEME_LOGO is unset, so invenio-app-rdm's header renders THEME_SITENAME
+ * as a plain text link instead of an <img>. That fallback is unstyled -
+ * the wordmark is the brand here, so give it the weight a logo would
+ * have carried. */
+
+#invenio-nav .item.logo a.logo {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  padding: 0.35rem 0;
+  white-space: nowrap;
+}
+
+#invenio-nav .item.logo a.logo:hover {
+  opacity: 0.85;
+}
+
+/*******************************
+  Record badge panel
  *******************************/
 
 #ovf-embed-badge .ovf-badge-preview {

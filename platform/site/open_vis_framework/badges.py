@@ -1,6 +1,7 @@
-"""Dynamic badges for public Open Vis Framework records."""
+"""Dynamic badges for public [open] vis records."""
 
 from dataclasses import dataclass
+from html import escape
 from datetime import datetime, timedelta, timezone
 
 from flask import current_app
@@ -291,25 +292,30 @@ def _display_rank(rank):
 
 def render_badge_svg(state):
     """Render a self-contained, accessible SVG badge."""
+    # The badge carries the site name, so read it from THEME_SITENAME
+    # rather than hardcoding it - see invenio.cfg. Escaped because it is
+    # interpolated straight into SVG markup below.
+    sitename = escape(current_app.config["THEME_SITENAME"])
+    eyebrow_brand = escape(current_app.config["THEME_SITENAME"].upper())
     if state.is_ranked:
         rank = _display_rank(state.current_rank)
         peak = _display_rank(state.peak_rank)
         accessible_label = (
-            f"Open Vis Framework: {rank} visualization this week; "
+            f"{sitename}: {rank} visualization this week; "
             f"best achieved rank {peak}"
         )
         left_content = f"""
     <text x="25" y="34" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="800" fill="#ffffff">{rank}</text>"""
-        eyebrow = "OPEN VIS FRAMEWORK · WEEKLY"
+        eyebrow = f"{eyebrow_brand} · WEEKLY"
         main_label = "Visualization this week"
         peak_label = f"PEAK {peak}"
     else:
-        accessible_label = "Visualization Sheet listed on Open Vis Framework"
+        accessible_label = f"Visualization Sheet listed on {sitename}"
         left_content = """
     <circle cx="18" cy="28" r="6" fill="#ffffff" fill-opacity="0.96"/>
     <circle cx="32" cy="21" r="4" fill="#ffffff" fill-opacity="0.72"/>
     <circle cx="32" cy="35" r="4" fill="#ffffff" fill-opacity="0.72"/>"""
-        eyebrow = "OPEN VIS FRAMEWORK"
+        eyebrow = eyebrow_brand
         main_label = "Visualization Sheet"
         peak_label = "LISTED"
 

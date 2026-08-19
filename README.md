@@ -1,4 +1,4 @@
-# Open Vis Framework
+# [open] vis
 
 An open platform for information visualization projects — people submit
 their work with rich metadata and context (data provenance, visual

@@ -1,4 +1,4 @@
-"""JS/CSS Webpack bundles for Open Vis Framework."""
+"""JS/CSS Webpack bundles for [open] vis."""
 
 from invenio_assets.webpack import WebpackThemeBundle
 

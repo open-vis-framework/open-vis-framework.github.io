@@ -1,4 +1,4 @@
-# Open Vis Framework
+# [open] vis
 
 Welcome to your InvenioRDM instance.
 

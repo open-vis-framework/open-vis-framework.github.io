@@ -1,5 +1,5 @@
 /**
- * Interactions for the Open Vis Framework record landing page.
+ * Interactions for the [open] vis record landing page.
  *
  * This code is served from the instance's own Webpack bundle so it remains
  * compatible with the site's Content Security Policy (which blocks inline

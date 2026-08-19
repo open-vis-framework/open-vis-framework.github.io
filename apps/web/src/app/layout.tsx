@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { SITE_NAME, SITE_DESCRIPTION } from "@/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Open Vis Framework",
-  description: "An open platform for information visualization projects.",
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

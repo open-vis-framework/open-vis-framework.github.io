@@ -15,7 +15,7 @@ import { Item, Label, Icon } from "semantic-ui-react";
 import { CompactStats } from "@js/invenio_app_rdm/components/CompactStats";
 import { DisplayPartOfCommunities } from "@js/invenio_app_rdm/components/DisplayPartOfCommunities";
 
-// Open Vis Framework: search results list item with a thumbnail image.
+// [open] vis: search results list item with a thumbnail image.
 //
 // The stock InvenioRDM component (invenio_app_rdm's RecordsResultsListItem.js)
 // never renders an image at all, even though every record's API response

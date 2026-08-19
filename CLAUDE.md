@@ -1,10 +1,42 @@
-# Open Vis Framework — repo conventions
+# [open] vis — repo conventions
 
 Monorepo. `apps/web` is a pnpm/Turborepo-managed Next.js app; `platform/`
 (the product) is a separate Python/InvenioRDM instance, not part of the
 pnpm workspace. See `docs/adr/0001-monorepo-two-apps.md` for the original
 two-Next.js-apps shape and `docs/adr/0005-adopt-inveniordm.md` for why
 the product side moved off Next.js entirely.
+
+## The site name
+
+The site is called **[open] vis**. It is deliberately held in exactly two
+constants, because it has been renamed once already and may be again:
+
+- `platform/invenio.cfg` — `THEME_SITENAME`. The frontpage title, record
+  publisher default, header wordmark, footer, account emails and record
+  badge all derive from it; none of them repeat the literal.
+- `apps/web/src/site.ts` — `SITE_NAME`. A separate constant only because
+  `apps/web` is a static Next.js export that cannot import from a Python
+  app built in its own Docker context. Keep the two in step.
+
+Renaming means editing those two lines. Do **not** extend a rename to the
+identifiers that merely contain the old name — they are not labels, and
+changing them breaks published data or running deployments:
+`open-vis-framework.duckdns.org`, `OAISERVER_ID_PREFIX` (baked into
+already-published OAI-PMH record ids), the `ovf:` custom-field namespace
+(in the search mapping and in stored records), the `ovf-` CSS prefixes,
+the `open_vis_framework` Python package, the Docker image and database
+names, and the GitHub org/repo.
+
+There is no logo image: the wordmark *is* the mark. `THEME_LOGO` is unset
+so invenio-app-rdm's header falls back to rendering `THEME_SITENAME` as a
+text link (styled in `platform/assets/less/site/globals/site.overrides`).
+Leave `THEME_LOGO_ADMIN` alone — its template renders an `<img>`
+unconditionally, with no such fallback.
+
+One trap: the name contains square brackets, which are Markdown link
+syntax. Anywhere it lands inside Markdown — currently the copyable badge
+snippet in `records/badge.html` — it needs backslash-escaping, which that
+template does via a `sitename_md` variable.
 
 ## Layout
 

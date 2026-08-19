@@ -15,6 +15,19 @@ multi-valued facet - see the phases below for what to pick up.
 
 ## InvenioRDM migration (current work — see ADR 0005)
 
+- [x] **Rename to "[open] vis"** (2026-08-19): the product name changed
+      from "Open Vis Framework". Because it may change again, the name now
+      lives in exactly two constants - `THEME_SITENAME` in
+      `platform/invenio.cfg` and `SITE_NAME` in `apps/web/src/site.ts` -
+      with the frontpage title, publisher default, header wordmark,
+      footer, account emails and record badge all deriving from the
+      former. See CLAUDE.md's "The site name" for what deliberately did
+      *not* get renamed (the domain, `OAISERVER_ID_PREFIX`, the `ovf:`
+      field namespace, package/image/database names) and why. The logo
+      image is gone with it - `THEME_LOGO` is unset and the wordmark is
+      the mark. Earlier phase notes below still say "Open Vis Framework";
+      they are left as written, being accounts of what was true then.
+
 - [x] **Migration Phase 0 — Docs**: this section, ADR 0005, `CLAUDE.md`
       layout update.
 - [x] **Migration Phase 1 — Local scaffold** (go/no-go gate, passed):

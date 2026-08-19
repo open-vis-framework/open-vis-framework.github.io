@@ -1,4 +1,10 @@
 {% if record_ui["is_published"] and not is_preview and record_ui["access"]["record"] == "public" %}
+  {% set sitename = config.THEME_SITENAME %}
+  {#- The site name goes inside Markdown link text below, where the
+      brackets in a name like "[open] vis" would otherwise be parsed as
+      link syntax and break the snippet users copy. Backslash-escape
+      them for that one context only. -#}
+  {% set sitename_md = sitename | replace('[', '\\[') | replace(']', '\\]') %}
   {% set badge_path = url_for('open_vis_framework.record_badge', record_id=record_ui['id']) %}
   {% set badge_url = config.SITE_UI_URL.rstrip('/') ~ badge_path %}
   {% set record_url = record_ui['links']['self_html'] %}
@@ -9,7 +15,7 @@
   >
     <h2 id="ovf-embed-badge-title" class="ui small header mb-10">
       <i class="certificate icon" aria-hidden="true"></i>
-      <span class="content">Open Vis badge</span>
+      <span class="content">{{ sitename }} badge</span>
     </h2>
 
     <p class="text-muted mt-0">
@@ -19,14 +25,14 @@
     <a
       class="ovf-badge-preview"
       href="{{ record_url }}"
-      aria-label="View this Visualization Sheet on Open Vis Framework"
+      aria-label="View this Visualization Sheet on {{ sitename }}"
     >
       <img
         src="{{ badge_url }}"
         width="290"
         height="55"
         loading="lazy"
-        alt="Open Vis Framework Visualization Sheet badge"
+        alt="{{ sitename }} Visualization Sheet badge"
       >
     </a>
 
@@ -35,7 +41,7 @@
 
       <label for="ovf-badge-markdown">Markdown</label>
       <div class="ovf-badge-copy-row">
-        <textarea id="ovf-badge-markdown" rows="3" readonly>[![Open Vis Framework Visualization Sheet]({{ badge_url }})]({{ record_url }})</textarea>
+        <textarea id="ovf-badge-markdown" rows="3" readonly>[![{{ sitename_md }} Visualization Sheet]({{ badge_url }})]({{ record_url }})</textarea>
         <button
           type="button"
           class="ui mini basic button ovf-copy-badge"
@@ -45,7 +51,7 @@
 
       <label for="ovf-badge-html">HTML</label>
       <div class="ovf-badge-copy-row">
-        <textarea id="ovf-badge-html" rows="4" readonly><a href="{{ record_url }}"><img src="{{ badge_url }}" width="290" height="55" alt="Open Vis Framework Visualization Sheet badge"></a></textarea>
+        <textarea id="ovf-badge-html" rows="4" readonly><a href="{{ record_url }}"><img src="{{ badge_url }}" width="290" height="55" alt="{{ sitename }} Visualization Sheet badge"></a></textarea>
         <button
           type="button"
           class="ui mini basic button ovf-copy-badge"

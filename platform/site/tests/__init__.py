@@ -1,1 +1,1 @@
-"""Tests for the Open Vis Framework instance package."""
+"""Tests for the [open] vis instance package."""
