@@ -27,7 +27,7 @@ def create_blueprint(app):
         except PublicRecordNotFound:
             abort(404)
 
-        svg = render_badge_svg(state)
+        svg = render_badge_svg(state, current_app.config["THEME_SITENAME"])
         response = Response(svg, content_type="image/svg+xml; charset=utf-8")
         cache_seconds = current_app.config.get("OVF_BADGE_CACHE_SECONDS", 3600)
         response.headers["Cache-Control"] = (

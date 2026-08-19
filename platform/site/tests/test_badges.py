@@ -18,6 +18,11 @@ from open_vis_framework.views import create_blueprint
 
 PACKAGE_ROOT = Path(__file__).parents[1] / "open_vis_framework"
 
+# Deliberately not the real site name: the badge should render whatever
+# THEME_SITENAME says, so a test asserting the production name would pass
+# even if the value were hardcoded again.
+SITENAME = "[test] vis"
+
 
 class BadgeLogicTest(unittest.TestCase):
     """Exercise the ranking and SVG logic without external services."""
@@ -39,17 +44,30 @@ class BadgeLogicTest(unittest.TestCase):
 
     def test_ranked_svg_contains_current_and_peak_rank(self):
         """A qualified record displays both live and best achieved ranks."""
-        svg = render_badge_svg(BadgeState(current_rank=3, peak_rank=1))
+        svg = render_badge_svg(BadgeState(current_rank=3, peak_rank=1), SITENAME)
         self.assertIn("#3", svg)
         self.assertIn("PEAK #1", svg)
         self.assertIn("Visualization this week", svg)
 
     def test_unranked_svg_is_still_a_registry_badge(self):
         """Low-activity records receive a useful non-ranking badge."""
-        svg = render_badge_svg(BadgeState())
+        svg = render_badge_svg(BadgeState(), SITENAME)
         self.assertIn("Visualization Sheet", svg)
         self.assertIn("LISTED", svg)
         self.assertNotIn("PEAK", svg)
+
+    def test_badge_carries_the_configured_site_name(self):
+        """The badge follows THEME_SITENAME instead of a baked-in name."""
+        for state in (BadgeState(), BadgeState(current_rank=3, peak_rank=1)):
+            svg = render_badge_svg(state, SITENAME)
+            self.assertIn(SITENAME, svg)
+            self.assertIn(SITENAME.upper(), svg)
+
+    def test_site_name_is_escaped_into_the_svg(self):
+        """A name with XML metacharacters cannot break the markup."""
+        svg = render_badge_svg(BadgeState(), "Ampersand & <Angle>")
+        self.assertIn("Ampersand &amp; &lt;Angle&gt;", svg)
+        self.assertNotIn("<Angle>", svg)
 
 
 class BadgeEndpointTest(unittest.TestCase):
@@ -59,6 +77,7 @@ class BadgeEndpointTest(unittest.TestCase):
         """Create a minimal Flask app around the instance blueprint."""
         self.app = Flask(__name__)
         self.app.config["OVF_BADGE_CACHE_SECONDS"] = 1800
+        self.app.config["THEME_SITENAME"] = SITENAME
         self.app.register_blueprint(create_blueprint(self.app))
         self.client = self.app.test_client()
 

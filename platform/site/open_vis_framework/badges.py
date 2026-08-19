@@ -290,18 +290,21 @@ def _display_rank(rank):
     return f"#{rank // 1000}K+"
 
 
-def render_badge_svg(state):
-    """Render a self-contained, accessible SVG badge."""
-    # The badge carries the site name, so read it from THEME_SITENAME
-    # rather than hardcoding it - see invenio.cfg. Escaped because it is
-    # interpolated straight into SVG markup below.
-    sitename = escape(current_app.config["THEME_SITENAME"])
-    eyebrow_brand = escape(current_app.config["THEME_SITENAME"].upper())
+def render_badge_svg(state, sitename):
+    """Render a self-contained, accessible SVG badge.
+
+    ``sitename`` is passed in rather than read from THEME_SITENAME here so
+    this stays a pure function, renderable (and testable) without an
+    application context. The caller in views.py supplies the config value.
+    """
+    # Escaped because both land directly in the SVG markup below.
+    brand = escape(sitename)
+    eyebrow_brand = escape(sitename.upper())
     if state.is_ranked:
         rank = _display_rank(state.current_rank)
         peak = _display_rank(state.peak_rank)
         accessible_label = (
-            f"{sitename}: {rank} visualization this week; "
+            f"{brand}: {rank} visualization this week; "
             f"best achieved rank {peak}"
         )
         left_content = f"""
@@ -310,7 +313,7 @@ def render_badge_svg(state):
         main_label = "Visualization this week"
         peak_label = f"PEAK {peak}"
     else:
-        accessible_label = f"Visualization Sheet listed on {sitename}"
+        accessible_label = f"Visualization Sheet listed on {brand}"
         left_content = """
     <circle cx="18" cy="28" r="6" fill="#ffffff" fill-opacity="0.96"/>
     <circle cx="32" cy="21" r="4" fill="#ffffff" fill-opacity="0.72"/>
