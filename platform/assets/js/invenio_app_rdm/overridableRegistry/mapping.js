@@ -12,6 +12,7 @@ import _get from "lodash/get";
 import React, { useEffect, useState } from "react";
 import { useFormikContext } from "formik";
 import { AccordionField, Input, TextArea, Dropdown } from "react-invenio-forms";
+import { DepositFormApp } from "@js/invenio_rdm_records";
 import { SearchItemCreators } from "@js/invenio_app_rdm/utils";
 import { Item, Label, Icon, Checkbox } from "semantic-ui-react";
 import { CompactStats } from "@js/invenio_app_rdm/components/CompactStats";
@@ -229,15 +230,18 @@ const VisualizationStart = ({ customFieldsUI, record }) => <div className="ovf-f
   <SchemaGroup sections={customFieldsUI} group="visualization" record={record} />
 </div>;
 
-const VisualizationFiles = ({ children }) => {
-  const original = React.Children.only(children);
-  return React.cloneElement(original, { label: "Upload your visualization or a preview", "data-label": "Visualization files" },
-    <p>Upload an image, PDF, or supporting files. Choose an image in the uploader’s Preview column to use as your cover. For a link without uploads, select “Link only” below.</p>, original.props.children);
-};
+// react-overridable forwards the original child's props (including its inner
+// children), not the original child element. Recreate the native container.
+const VisualizationFiles = ({ children, includesPaths, severityChecks, active }) => (
+  <AccordionField id="files-section" includesPaths={includesPaths} severityChecks={severityChecks}
+    active={active} label="Upload your visualization or a preview" data-label="Visualization files">
+    <p>Upload an image, PDF, or supporting files. Choose an image in the uploader’s Preview column to use as your cover. For a link without uploads, select “Link only” below.</p>
+    {children}
+  </AccordionField>
+);
 
-const Essentials = ({ children, config, record }) => {
-  const original = React.Children.only(children);
-  const controls = React.Children.toArray(original.props.children);
+const Essentials = ({ children, config, record, includesPaths = [], severityChecks }) => {
+  const controls = React.Children.toArray(children);
   const extraNames = ["PIDField", "CopyrightsField"];
   const extra = controls.filter((child) => extraNames.some((name) => child.props?.id?.includes(`.${name}.`)));
   const native = config.custom_fields.ui.flatMap((section) => section.native_fields || []);
@@ -250,18 +254,20 @@ const Essentials = ({ children, config, record }) => {
   });
   const first = primary.filter((control) => ["metadata.title", "metadata.creators", "metadata.description"].includes(control.props?.fieldPath));
   const remaining = primary.filter((control) => !first.includes(control));
-  return React.cloneElement(original, { label: "Step 2 · The essentials", active: true, includesPaths: [...(original.props.includesPaths || []), "custom_fields.ovf:data_sources"] },
-    <p>Give your visualization a title, credit its creators, and identify the data. Check the publication date and reuse license before publishing.</p>,
-    first,
-    <SchemaGroup sections={config.custom_fields.ui} group="essentials" record={record} />,
-    remaining,
-    <FormDetails title="Persistent identifiers & copyright" paths={["pids", "metadata.copyright"]}>{extra}</FormDetails>,
-    <p className="text-muted">Visualization ID: {record?.id || "Generated automatically when your draft is created"}. The platform assigns this for you.</p>);
+  return <AccordionField id="basic-information-section" label="Step 2 · The essentials" active
+    includesPaths={[...includesPaths, "custom_fields.ovf:data_sources"]} severityChecks={severityChecks}>
+    <p>Give your visualization a title, credit its creators, and identify the data. Check the publication date and reuse license before publishing.</p>
+    {first}
+    <SchemaGroup sections={config.custom_fields.ui} group="essentials" record={record} />
+    {remaining}
+    <FormDetails title="Persistent identifiers & copyright" paths={["pids", "metadata.copyright"]}>{extra}</FormDetails>
+    <p className="text-muted">Visualization ID: {record?.id || "Generated automatically when your draft is created"}. The platform assigns this for you.</p>
+  </AccordionField>;
 };
 
 // Reorder only the main column of the existing form; keep the original form
 // provider, feedback, save/preview/publish sidebar, permissions and extensions.
-const FriendlyDepositLayout = ({ children }) => {
+const FriendlyDepositLayout = ({ children, config, record, preselectedCommunity, files, permissions, errors, recordSerializer }) => {
   const visit = (node) => {
     if (!React.isValidElement(node)) return node;
     if (node.props.computer === 11) {
@@ -274,9 +280,16 @@ const FriendlyDepositLayout = ({ children }) => {
         <FormDetails key="advanced" title="Additional publication details" description="Contributors, topics, funding, related works and other repository details." paths={["metadata", "pids"]}>{rest}</FormDetails>);
     }
     if (!node.props.children) return node;
-    return React.cloneElement(node, {}, React.Children.map(node.props.children, visit));
+    // Overridable itself requires one element, not an array of one element.
+    const content = React.isValidElement(node.props.children)
+      ? visit(node.props.children)
+      : React.Children.map(node.props.children, visit);
+    return React.cloneElement(node, {}, content);
   };
-  return visit(React.Children.only(children));
+  return <DepositFormApp config={config} record={record} preselectedCommunity={preselectedCommunity}
+    files={files} permissions={permissions} errors={errors} recordSerializer={recordSerializer}>
+    {React.Children.map(children, visit)}
+  </DepositFormApp>;
 };
 
 const LinkOnlyToggle = ({ showMetadataOnlyToggle, filesList, filesEnabled, handleOnChangeMetadataOnly }) => showMetadataOnlyToggle ?

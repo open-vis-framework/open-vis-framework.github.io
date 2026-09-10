@@ -25,6 +25,7 @@ RUN cp -r ./static/. ${INVENIO_INSTANCE_PATH}/static/ && \
     cp -r ./assets/. ${INVENIO_INSTANCE_PATH}/assets/ && \
     invenio collect --verbose && \
     invenio webpack buildall && \
+    OVF_ASSETS="${INVENIO_INSTANCE_PATH}/assets" node ./site/tests/upload_overrides.cjs && \
     rm -rf ${INVENIO_INSTANCE_PATH}/assets && \
     rm -rf \
         /root/.cache \

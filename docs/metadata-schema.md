@@ -91,3 +91,12 @@ permissions and upload handling remain in force. Supporting downloads are
 collapsed below the reading content. Published pages offer a copyable anchor
 link to the guide; this is the first version of portable context, not an iframe
 embed or a new external hosting service.
+
+
+The upload overrides are integration-tested against the installed
+`react-overridable` package. Its contract forwards the original component's
+props and inner children, so overrides must recreate the native container and
+form provider. Run `node site/tests/upload_overrides.cjs` from `platform/` after
+installing frontend assets. The Docker build runs this check before deploying.
+The test exercises the real override mechanism while using lightweight native
+control stand-ins; authenticated browser upload/publish testing remains useful.
