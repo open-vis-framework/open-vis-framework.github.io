@@ -69,12 +69,12 @@ jobs:
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               build web-api worker scheduler
-            # Update and verify the new optional mapping from the newly built
+            # Initialize all configured metadata mappings from the newly built
             # image while the current production containers are still serving.
             docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               run --rm --no-deps web-ui \
-              "invenio rdm-records custom-fields init --field-name ovf:version_notes"
+              "invenio rdm-records custom-fields init"
             FIELD_CHECK=$(docker compose --file docker-compose.full.yml \
               --file docker-compose.prod-override.yml \
               run --rm --no-deps web-ui \

@@ -1,0 +1,69 @@
+# Visualization metadata v0.1
+
+Edit **`platform/site/open_vis_framework/metadata_schema.json`**. This is the
+single source for the prototype taxonomy, field definitions and separate
+application policy. It is a candidate schema, not a validated research taxonomy.
+
+- `sections`: order, stable IDs, labels and descriptions.
+- `fields`: section membership, label, help, placeholder, storage path and type.
+  Custom types are `text`, `textarea`, `url`, `date`, and `select`; selects use
+  `options` with stable `id` and human-readable `title_l10n`.
+- `policy.fields`: core / conditional / recommended / optional, independently
+  of the category taxonomy. Changing category membership does not change policy.
+- `visible_when`: a storage path and an `in` list. The same rule governs UI
+  visibility and conditional publication requirements. AI model/system is required
+  when an AI role is declared; AI involvement itself is an applicability-based
+  disclosure, since the software cannot infer whether AI was used.
+- `system`: stored internal fields are not editable. New visualization IDs use
+  Invenio's native record ID; the legacy `ovf:voi` field remains readable/stored.
+
+## Implementation and storage
+
+The product is `platform/` (InvenioRDM); `apps/web` is a separate static landing
+site. Previously `custom_fields.py` duplicated backend definitions and form
+controls. It now generates both from the JSON. `metadata_schema.py` loads the
+profile and evaluates publication rules. The existing overridable registry
+renders the generated sections with Invenio's Semantic UI widgets and Formik,
+including live conditional visibility without clearing hidden values.
+
+Native metadata stays in `metadata.title`, `description`, `creators`, `version`,
+`publication_date`, `publisher`, and `rights`; files and access stay native too.
+Their existing specialist controls remain above the custom sections, and the
+schema-driven sections identify these controls and their profile levels. Native
+control internals/types and Invenio's own publication requirements (for example
+publication date and resource type) are framework constraints, not overridden
+by this profile. JSON entries for native fields document those bindings; they
+do not replace native validation or convert complex creator/license objects.
+
+Additional values stay in the record's `custom_fields` object under stable
+`ovf:*` names. Invenio persists draft/published record JSON in PostgreSQL and
+indexes custom-field mappings in OpenSearch; files remain in its file storage.
+No local-storage replacement, database rebuild or record migration is introduced.
+Existing identifiers, AI enum values, facet mappings and version notes are
+preserved. Successful publication stamps `ovf:schema_version` with `0.1`.
+Old records are readable without backfilling; editing and republishing them
+applies the new core requirements. Incomplete drafts remain saveable.
+
+## Editing and rollout
+
+For labels/help, section order, policy or enum labels, edit JSON and restart the
+application. The frontend receives the generated configuration at page load.
+For a new custom field, add a unique stable `id`, section, storage path, type and
+policy entry. Never rename a stored key or change its storage representation
+without an explicit migration. Existing fields are scalar strings; chart types,
+URLs/derivatives and creator-independent lists use prose for this prototype.
+Enums are enforced server-side. URL/date controls provide browser input hints;
+this prototype does not add strict API validation of those strings.
+
+After adding fields, run `invenio rdm-records custom-fields init` in the configured
+platform environment to update the search mappings. The existing deployment
+workflow now initializes all configured fields before replacing containers.
+Rebuild assets after changing the JS renderer (`invenio-cli assets build` in the
+normal local workflow). No deployment or existing database was changed by this
+refactor.
+
+Run focused tests from `platform/`:
+
+```sh
+PYTHONPATH=site .venv/bin/python -m unittest discover -s site/tests -v
+```

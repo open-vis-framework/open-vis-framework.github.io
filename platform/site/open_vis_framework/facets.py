@@ -5,16 +5,8 @@ from invenio_records_resources.services.records.facets import CFTermsFacet, Term
 from invenio_vocabularies.services.facets import VocabularyLabels
 
 
-AI_INVOLVEMENT_OPTIONS = [
-    {"id": "none", "title_l10n": _("No AI used")},
-    {"id": "data_processing", "title_l10n": _("Data processing")},
-    {"id": "design_assistance", "title_l10n": _("Design assistance")},
-    {"id": "code_generation", "title_l10n": _("Code generation")},
-    {"id": "content_generation", "title_l10n": _("Content generation")},
-    {"id": "other", "title_l10n": _("Other")},
-    {"id": "not_disclosed", "title_l10n": _("Not disclosed")},
-]
-"""Options for the scalar ``ovf:ai_involvement`` deposit-form field."""
+from .metadata_schema import AI_INVOLVEMENT_OPTIONS
+
 
 AI_INVOLVEMENT_LABELS = {
     option["id"]: option["title_l10n"] for option in AI_INVOLVEMENT_OPTIONS

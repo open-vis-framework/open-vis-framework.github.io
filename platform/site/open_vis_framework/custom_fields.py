@@ -1,316 +1,86 @@
-"""Visualization Sheet custom fields.
+"""Generate storage definitions and the deposit UI from the v0.1 schema."""
 
-Placeholder mapping of the six-section taxonomy from
-docs/adr/0004-visualization-sheets.md onto InvenioRDM custom fields
-(see docs/adr/0005-adopt-inveniordm.md, Migration Phase 3).
-
-Deliberately minimal for now, matching this phase's scope: every field
-below is a plain ``TextCF`` (free text), same granularity as the
-original Drizzle schema's mostly-free-text columns. Two fields
-(``ai_involvement``, ``chart_types``) are marked ``use_as_filter=True``
-so they're facetable once Migration Phase 6 (search & browse) wires up
-real faceting - matches ADR 0004's note that ``aiInvolvement`` and
-``license`` are the fields expected to need filtering.
-
-Not mapped here (handled by InvenioRDM's *native* fields instead, no
-custom field needed):
-- title, description/summary -> native ``metadata.title`` / ``metadata.description``
-- authors -> native ``metadata.creators`` (name/affiliation/orcid/email)
-- keywords -> native ``metadata.subjects``
-- license -> native ``metadata.rights``
-- contact email / paper URL / code URL -> native ``metadata.related_identifiers``
-  or ``custom fields`` if native modeling proves awkward - revisit in a
-  later, non-placeholder pass.
-- the uploaded-file case of "the visualization itself" -> InvenioRDM's
-  native file uploads (invenio-files-rest), not a custom field.
-
-TODO (later, non-placeholder pass): tighten validation (e.g. URL format
-on ``viz_url``). AI involvement now uses a controlled scalar vocabulary
-in both the UI and service schema. Also consider ``KeywordCF``/multiple=True
-for genuinely multi-valued fields like ``chart_types``.
-"""
-
-from invenio_i18n import lazy_gettext as _
 from invenio_records_resources.services.custom_fields import TextCF
 from marshmallow import validate
 
-from .facets import AI_INVOLVEMENT_OPTIONS
+from .metadata_schema import FIELDS, POLICY, SCHEMA
 
-OVF_NAMESPACES = {
-    "ovf": "",
+OVF_NAMESPACES = {"ovf": ""}
+WIDGETS = {
+    "text": "Input",
+    "textarea": "TextArea",
+    "url": "Input",
+    "date": "Input",
+    "select": "Dropdown",
 }
 
-OVF_CUSTOM_FIELDS = [
-    # --- VOI: Visualization Object Identifier ---
-    # NOT a real, externally-resolvable identifier yet - self-assigned,
-    # locally unique only. A real one needs DataCite (DOI) registration,
-    # deferred - see docs/ROADMAP.md. Mirrors invenio_rdm_records' own
-    # demo-fixture convention of a "10.9999/..." fake-DOI-shaped string
-    # for non-real identifiers, so it's visually recognizable as
-    # DOI-like without claiming to actually be one.
-    TextCF(name="ovf:voi"),
-    # --- Version-specific release note (cleared when a new version draft is
-    # created by OVFCustomFieldsComponent) ---
-    TextCF(name="ovf:version_notes"),
-    # --- The visualization itself (file case is native uploads; this
-    # is the alternative "hosted/interactive visualization" case) ---
-    TextCF(name="ovf:viz_url"),
-    # --- Data provenance ---
-    TextCF(name="ovf:data_sources"),
-    TextCF(name="ovf:data_collection_method"),
-    TextCF(name="ovf:data_temporal_coverage"),
-    TextCF(name="ovf:data_transformations"),
-    TextCF(name="ovf:data_license"),
-    TextCF(name="ovf:data_limitations"),
-    # --- Visual encoding & design ---
-    TextCF(name="ovf:chart_types", use_as_filter=True),
-    TextCF(name="ovf:tools_used"),
-    TextCF(name="ovf:encoding_description"),
-    TextCF(name="ovf:design_rationale"),
-    # --- AI involvement disclosure ---
-    TextCF(
-        name="ovf:ai_involvement",
-        use_as_filter=True,
-        field_args={
-            "validate": validate.OneOf(
-                [option["id"] for option in AI_INVOLVEMENT_OPTIONS]
-            )
-        },
-    ),
-    TextCF(name="ovf:ai_description"),
-    TextCF(name="ovf:ai_human_review"),
-    # --- Limitations ---
-    TextCF(name="ovf:limitations"),
-]
 
+def backend_field(field):
+    """Preserve scalar text storage and existing search mappings."""
+    validators = []
+    if field.get("options"):
+        validators.append(
+            validate.OneOf([option["id"] for option in field["options"]])
+        )
+    return TextCF(
+        name=field["storage"].removeprefix("custom_fields."),
+        use_as_filter=field.get("filter", False),
+        field_args={"validate": validators},
+    )
+
+
+def ui_field(field):
+    """Translate one schema entry into Invenio's existing form widgets."""
+    level = POLICY[field["id"]]
+    props = {
+        "label": field["label"] + " (" + level + ")",
+        "description": field.get("help", ""),
+        "placeholder": field.get("placeholder", ""),
+        "required": level == "core" or (
+            level == "conditional" and bool(field.get("visible_when"))
+        ),
+    }
+    if field["type"] == "textarea":
+        props["rows"] = 3
+    if field["type"] in ("url", "date"):
+        props["type"] = field["type"]
+    if field.get("options"):
+        props.update(
+            options=field["options"], multiple=False, search=False, clearable=True
+        )
+    return {
+        "field": field["storage"].removeprefix("custom_fields."),
+        "ui_widget": WIDGETS[field["type"]],
+        "props": props,
+        "visible_when": field.get("visible_when"),
+    }
+
+
+CUSTOM = [f for f in FIELDS if f["storage"].startswith("custom_fields.")]
+OVF_CUSTOM_FIELDS = [backend_field(field) for field in CUSTOM]
 OVF_CUSTOM_FIELDS_UI = [
     {
-        "section": _("Version note"),
-        # Rendered prominently by OVF's disclosure summary instead of being
-        # repeated in Invenio's generic Additional details panel.
-        "hide_from_landing_page": True,
-        "fields": [
-            {
-                "field": "ovf:version_notes",
-                "ui_widget": "TextArea",
-                "props": {
-                    "label": _("What changed in this version?"),
-                    "placeholder": _(
-                        "Briefly describe corrections, data updates, design "
-                        "changes, or other differences from the previous version."
-                    ),
-                    "description": _(
-                        "This note belongs only to this version and is shown "
-                        "on its public Visualization Sheet."
-                    ),
-                    "icon": "history",
-                    "rows": 3,
-                },
-            },
+        "section": section["label"],
+        "description": section["description"],
+        "native_fields": [
+            dict(f, level=POLICY[f["id"]])
+            for f in FIELDS
+            if f["section"] == section["id"]
+            and not f["storage"].startswith("custom_fields.")
         ],
-    },
-    {
-        "section": _("Identifier"),
         "fields": [
-            {
-                "field": "ovf:voi",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("VOI (Visualization Object Identifier)"),
-                    "placeholder": "10.9999/ovf.xxxxxxx",
-                    "description": _(
-                        "Self-assigned for now, not yet a real externally-"
-                        "resolvable identifier (that needs DOI registration "
-                        "via DataCite - not set up yet). Usually left blank "
-                        "at submission and assigned automatically."
-                    ),
-                    "icon": "hashtag",
-                },
-            },
+            ui_field(f)
+            for f in CUSTOM
+            if f["section"] == section["id"]
+            and not f.get("system")
+            and not f.get("hide_from_landing_page")
         ],
-    },
-    {
-        "section": _("The visualization"),
-        "fields": [
-            {
-                "field": "ovf:viz_url",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Hosted/interactive visualization URL"),
-                    "placeholder": "https://observablehq.com/@you/your-viz",
-                    "description": _(
-                        "Only for interactive visualizations hosted elsewhere "
-                        "(Observable, a live D3 page, Tableau Public, ...). "
-                        "Leave blank if you uploaded a file instead."
-                    ),
-                    "icon": "linkify",
-                },
-            },
-        ],
-    },
-    {
-        "section": _("Data provenance"),
-        "fields": [
-            {
-                "field": "ovf:data_sources",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Data sources"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "database",
-                },
-            },
-            {
-                "field": "ovf:data_collection_method",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Data collection method"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "clipboard list",
-                },
-            },
-            {
-                "field": "ovf:data_temporal_coverage",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Temporal coverage"),
-                    "placeholder": "e.g. 2015-2024",
-                    "description": "",
-                    "icon": "calendar alternate outline",
-                },
-            },
-            {
-                "field": "ovf:data_transformations",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Data transformations"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "exchange",
-                },
-            },
-            {
-                "field": "ovf:data_license",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Data license"),
-                    "placeholder": "",
-                    "description": _(
-                        "License of the underlying data - may differ from "
-                        "this record's own license."
-                    ),
-                    "icon": "balance scale",
-                },
-            },
-            {
-                "field": "ovf:data_limitations",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Data limitations"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "exclamation triangle",
-                },
-            },
-        ],
-    },
-    {
-        "section": _("Visual encoding & design"),
-        "fields": [
-            {
-                "field": "ovf:chart_types",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Chart type(s)"),
-                    "placeholder": "e.g. choropleth map, line chart",
-                    "description": "",
-                    "icon": "chart bar",
-                },
-            },
-            {
-                "field": "ovf:tools_used",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Tools used"),
-                    "placeholder": "e.g. D3.js, Observable Plot, Tableau",
-                    "description": "",
-                    "icon": "wrench",
-                },
-            },
-            {
-                "field": "ovf:encoding_description",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Visual encoding description"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "paint brush",
-                },
-            },
-            {
-                "field": "ovf:design_rationale",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Design rationale"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "lightbulb outline",
-                },
-            },
-        ],
-    },
-    {
-        "section": _("AI involvement & limitations"),
-        "fields": [
-            {
-                "field": "ovf:ai_involvement",
-                "ui_widget": "Dropdown",
-                "props": {
-                    "label": _("AI involvement"),
-                    "placeholder": _("Select AI involvement"),
-                    "description": _(
-                        "Choose the primary way AI was involved. Add details "
-                        "in the description below."
-                    ),
-                    "icon": "robot",
-                    "options": AI_INVOLVEMENT_OPTIONS,
-                    "search": False,
-                    "multiple": False,
-                    "clearable": True,
-                },
-            },
-            {
-                "field": "ovf:ai_description",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("AI involvement description"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "info circle",
-                },
-            },
-            {
-                "field": "ovf:ai_human_review",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Human review of AI output"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "eye",
-                },
-            },
-            {
-                "field": "ovf:limitations",
-                "ui_widget": "Input",
-                "props": {
-                    "label": _("Known limitations"),
-                    "placeholder": "",
-                    "description": "",
-                    "icon": "exclamation circle",
-                },
-            },
-        ],
-    },
+    }
+    for section in SCHEMA["sections"]
 ]
+# Preserve the existing prominent version-note presentation without duplication.
+OVF_CUSTOM_FIELDS_UI.append({
+    "section": "Version note",
+    "hide_from_landing_page": True,
+    "fields": [ui_field(f) for f in CUSTOM if f.get("hide_from_landing_page")],
+})

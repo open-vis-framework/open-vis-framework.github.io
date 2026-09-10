@@ -57,6 +57,19 @@ def render_ovf_resources(record):
             )
         )
 
+    for field, label in (
+        ("ovf:data_download_url", "Data"), ("ovf:code_url", "Code")
+    ):
+        url = _http_url(custom_fields.get(field))
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            resources.append(
+                dump_external_resource(
+                    url, label, "Visualization resources",
+                    subtitle=urlparse(url).netloc,
+                )
+            )
+
     for related in data.get("metadata", {}).get("related_identifiers", []):
         url = _related_identifier_url(related)
         resource_type = related.get("resource_type", {}) or {}

@@ -10,6 +10,8 @@
 import { i18next } from "@translations/invenio_app_rdm/i18next";
 import _get from "lodash/get";
 import React from "react";
+import { useFormikContext } from "formik";
+import { AccordionField, Input, TextArea, Dropdown } from "react-invenio-forms";
 import { SearchItemCreators } from "@js/invenio_app_rdm/utils";
 import { Item, Label, Icon } from "semantic-ui-react";
 import { CompactStats } from "@js/invenio_app_rdm/components/CompactStats";
@@ -164,3 +166,44 @@ export const overriddenComponents = Object.fromEntries(
     RecordsResultsListItemWithThumbnail,
   ])
 );
+
+
+// Keep Invenio widgets and accordions while evaluating configuration reactively.
+// Stock CustomFields loads its configuration only on mount, so changing its
+// config prop alone would not update conditional visibility.
+const SCHEMA_WIDGETS = { Input, TextArea, Dropdown };
+const SchemaCustomFields = ({ children, customFieldsUI, record }) => {
+  const { values } = useFormikContext();
+  const { severityChecks } = React.Children.only(children).props;
+  return customFieldsUI.map((section) => {
+    const fields = section.fields.filter((field) => {
+      const rule = field.visible_when;
+      return !rule || rule.in.includes(_get(values, rule.field));
+    });
+    return (
+      <AccordionField
+        key={section.section}
+        id={section.id}
+        label={section.section}
+        active={section.active ?? true}
+        includesPaths={fields.map((field) => `custom_fields.${field.field}`)}
+        severityChecks={severityChecks}
+      >
+        {section.description && <p>{section.description}</p>}
+        {section.native_fields?.map((field) => (
+          <p key={field.storage}>
+            <strong>{field.label}</strong> ({field.level})
+            {field.system ? `: ${record?.id || "Assigned when the draft is saved"}` : ": use the native control above."}
+            {field.help && ` ${field.help}`}
+          </p>
+        ))}
+        {fields.map((field) => {
+          const Widget = SCHEMA_WIDGETS[field.ui_widget];
+          return <Widget {...field.props} key={field.field} record={record} fieldPath={`custom_fields.${field.field}`} />;
+        })}
+      </AccordionField>
+    );
+  });
+};
+
+overriddenComponents["InvenioAppRdm.Deposit.CustomFields.container"] = SchemaCustomFields;
