@@ -15,7 +15,10 @@ application policy. It is a candidate schema, not a validated research taxonomy.
   when an AI role is declared; AI involvement itself is an applicability-based
   disclosure, since the software cannot infer whether AI was used.
 - `system`: stored internal fields are not editable. New visualization IDs use
-  Invenio's native record ID; the legacy `ovf:voi` field remains readable/stored.
+  Invenio's automatically generated native record ID. Authors cannot choose or
+  edit it; no VOI input is offered. A DOI, if introduced later, is separate.
+  The legacy `ovf:voi` field remains stored for compatibility but is hidden
+  from the form and public metadata sections.
 
 ## Implementation and storage
 

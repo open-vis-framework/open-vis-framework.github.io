@@ -192,7 +192,7 @@ const SchemaCustomFields = ({ children, customFieldsUI, record }) => {
         {section.description && <p>{section.description}</p>}
         {section.native_fields?.map((field) => (
           <p key={field.storage}>
-            <strong>{field.label}</strong> ({field.level})
+            <strong>{field.label}</strong> ({field.system ? "System-generated" : field.level})
             {field.system ? `: ${record?.id || "Assigned when the draft is saved"}` : ": use the native control above."}
             {field.help && ` ${field.help}`}
           </p>

@@ -95,7 +95,7 @@
       "section": "overview",
       "label": "Visualization ID",
       "type": "text",
-      "help": "",
+      "help": "Generated automatically by the platform when the draft is created. Authors cannot choose or edit this identifier.",
       "system": true,
       "storage": "id"
     },
