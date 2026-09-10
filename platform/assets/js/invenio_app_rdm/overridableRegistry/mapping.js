@@ -9,11 +9,11 @@
 
 import { i18next } from "@translations/invenio_app_rdm/i18next";
 import _get from "lodash/get";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useFormikContext } from "formik";
 import { AccordionField, Input, TextArea, Dropdown } from "react-invenio-forms";
 import { SearchItemCreators } from "@js/invenio_app_rdm/utils";
-import { Item, Label, Icon } from "semantic-ui-react";
+import { Item, Label, Icon, Checkbox } from "semantic-ui-react";
 import { CompactStats } from "@js/invenio_app_rdm/components/CompactStats";
 import { DisplayPartOfCommunities } from "@js/invenio_app_rdm/components/DisplayPartOfCommunities";
 
@@ -168,42 +168,125 @@ export const overriddenComponents = Object.fromEntries(
 );
 
 
-// Keep Invenio widgets and accordions while evaluating configuration reactively.
-// Stock CustomFields loads its configuration only on mount, so changing its
-// config prop alone would not update conditional visibility.
+// Presentation groups come from metadata_schema.json. Native Invenio controls
+// retain their upload, validation, access and draft/publish behavior.
 const SCHEMA_WIDGETS = { Input, TextArea, Dropdown };
-const SchemaCustomFields = ({ children, customFieldsUI, record }) => {
+const allSchemaFields = (sections) => sections.flatMap((section) => section.fields);
+const hasValue = (value) => typeof value === "string" ? Boolean(value.trim()) : Boolean(value?.length || value);
+const applicable = (field, values) => !field.visible_when || field.visible_when.in.includes(_get(values, field.visible_when.field));
+
+const SchemaField = ({ field, record }) => {
   const { values } = useFormikContext();
-  const { severityChecks } = React.Children.only(children).props;
-  return customFieldsUI.map((section) => {
-    const fields = section.fields.filter((field) => {
-      const rule = field.visible_when;
-      return !rule || rule.in.includes(_get(values, rule.field));
-    });
-    return (
-      <AccordionField
-        key={section.section}
-        id={section.id}
-        label={section.section}
-        active={section.active ?? true}
-        includesPaths={fields.map((field) => `custom_fields.${field.field}`)}
-        severityChecks={severityChecks}
-      >
-        {section.description && <p>{section.description}</p>}
-        {section.native_fields?.map((field) => (
-          <p key={field.storage}>
-            <strong>{field.label}</strong> ({field.system ? "System-generated" : field.level})
-            {field.system ? `: ${record?.id || "Assigned when the draft is saved"}` : ": use the native control above."}
-            {field.help && ` ${field.help}`}
-          </p>
-        ))}
-        {fields.map((field) => {
-          const Widget = SCHEMA_WIDGETS[field.ui_widget];
-          return <Widget {...field.props} key={field.field} record={record} fieldPath={`custom_fields.${field.field}`} />;
-        })}
-      </AccordionField>
-    );
-  });
+  if (!applicable(field, values)) return null;
+  const Widget = SCHEMA_WIDGETS[field.ui_widget];
+  return <Widget {...field.props} record={record} fieldPath={`custom_fields.${field.field}`} />;
 };
 
-overriddenComponents["InvenioAppRdm.Deposit.CustomFields.container"] = SchemaCustomFields;
+const SchemaGroup = ({ sections, group, record }) => allSchemaFields(sections)
+  .filter((field) => field.form_group === group)
+  .map((field) => <SchemaField key={field.field} field={field} record={record} />);
+
+// Native details elements preserve keyboard navigation and keep collapsed
+// values mounted. Open automatically when a save/publish returns field errors.
+const FormDetails = ({ id, title, description, paths = [], children, count }) => {
+  const { errors, initialErrors } = useFormikContext();
+  const hasErrors = paths.some((path) => _get(errors, path) || _get(initialErrors, path));
+  const [open, setOpen] = useState(false);
+  useEffect(() => { if (hasErrors) setOpen(true); }, [hasErrors]);
+  return <details id={id} className="ovf-form-details" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary>{title}{count && <span className="ovf-detail-count">{count}</span>}</summary>
+    <div className="ovf-form-details-body">{description && <p className="text-muted">{description}</p>}{children}</div>
+  </details>;
+};
+
+const SchemaCustomFields = ({ customFieldsUI, record }) => {
+  const { values } = useFormikContext();
+  return <section className="ovf-form-context" id="ovf-add-context">
+    <p className="ovf-step-label">STEP 3 · BUILD ON THE ESSENTIALS</p>
+    <h2>Add context</h2>
+    <p>Help someone understand and reuse your work. Start with these three prompts, or save your draft and return later.</p>
+    <div className="ui segment ovf-reader-prompts">
+      <h3>Read this chart</h3>
+      <p className="text-muted">These answers become a short card beside your visualization.</p>
+      <SchemaGroup sections={customFieldsUI} group="reader" record={record} />
+    </div>
+    {customFieldsUI.map((section) => {
+      const fields = section.fields.filter((field) => field.form_group === "context" && applicable(field, values));
+      if (!fields.length) return null;
+      const filled = fields.filter((field) => hasValue(_get(values, `custom_fields.${field.field}`))).length;
+      return <FormDetails key={section.section} id={section.id} title={section.section} description={section.description}
+        paths={fields.map((field) => `custom_fields.${field.field}`)} count={`${filled}/${fields.length} filled`}>
+        {fields.map((field) => <SchemaField key={field.field} field={field} record={record} />)}
+      </FormDetails>;
+    })}
+  </section>;
+};
+
+const VisualizationStart = ({ customFieldsUI, record }) => <div className="ovf-form-intro">
+  <p className="ovf-step-label">STEP 1 · START WITH YOUR WORK</p>
+  <h1>{record?.is_published ? "Edit your visualization" : "Share a visualization"}</h1>
+  <p>Add a link, upload your work, or use both. You can save a draft before filling in all the details.</p>
+  <SchemaGroup sections={customFieldsUI} group="visualization" record={record} />
+</div>;
+
+const VisualizationFiles = ({ children }) => {
+  const original = React.Children.only(children);
+  return React.cloneElement(original, { label: "Upload your visualization or a preview", "data-label": "Visualization files" },
+    <p>Upload an image, PDF, or supporting files. Choose an image in the uploader’s Preview column to use as your cover. For a link without uploads, select “Link only” below.</p>, original.props.children);
+};
+
+const Essentials = ({ children, config, record }) => {
+  const original = React.Children.only(children);
+  const controls = React.Children.toArray(original.props.children);
+  const extraNames = ["PIDField", "CopyrightsField"];
+  const extra = controls.filter((child) => extraNames.some((name) => child.props?.id?.includes(`.${name}.`)));
+  const native = config.custom_fields.ui.flatMap((section) => section.native_fields || []);
+  const primary = controls.filter((child) => !extra.includes(child)).map((control) => {
+    const field = native.find((item) => item.storage === control.props?.fieldPath);
+    if (!field || !React.isValidElement(control.props.children)) return control;
+    return React.cloneElement(control, {}, React.cloneElement(control.props.children, {
+      label: field.label, helpText: field.help || undefined, placeholder: field.placeholder,
+    }));
+  });
+  const first = primary.filter((control) => ["metadata.title", "metadata.creators", "metadata.description"].includes(control.props?.fieldPath));
+  const remaining = primary.filter((control) => !first.includes(control));
+  return React.cloneElement(original, { label: "Step 2 · The essentials", active: true, includesPaths: [...(original.props.includesPaths || []), "custom_fields.ovf:data_sources"] },
+    <p>Give your visualization a title, credit its creators, and identify the data. Check the publication date and reuse license before publishing.</p>,
+    first,
+    <SchemaGroup sections={config.custom_fields.ui} group="essentials" record={record} />,
+    remaining,
+    <FormDetails title="Persistent identifiers & copyright" paths={["pids", "metadata.copyright"]}>{extra}</FormDetails>,
+    <p className="text-muted">Visualization ID: {record?.id || "Generated automatically when your draft is created"}. The platform assigns this for you.</p>);
+};
+
+// Reorder only the main column of the existing form; keep the original form
+// provider, feedback, save/preview/publish sidebar, permissions and extensions.
+const FriendlyDepositLayout = ({ children }) => {
+  const visit = (node) => {
+    if (!React.isValidElement(node)) return node;
+    if (node.props.computer === 11) {
+      const items = React.Children.toArray(node.props.children);
+      const pick = (name) => items.find((item) => item.props?.id === `InvenioAppRdm.Deposit.${name}`);
+      const selected = [pick("Files.before.container"), pick("AccordionFieldFiles.container"), pick("Files.after.container"), pick("AccordionFieldBasicInformation.container"), pick("BasicInformation.after.container"), pick("CustomFields.container")].filter(Boolean);
+      const rest = items.filter((item) => !selected.includes(item));
+      return React.cloneElement(node, { className: "ovf-friendly-deposit" },
+        selected,
+        <FormDetails key="advanced" title="Additional publication details" description="Contributors, topics, funding, related works and other repository details." paths={["metadata", "pids"]}>{rest}</FormDetails>);
+    }
+    if (!node.props.children) return node;
+    return React.cloneElement(node, {}, React.Children.map(node.props.children, visit));
+  };
+  return visit(React.Children.only(children));
+};
+
+const LinkOnlyToggle = ({ showMetadataOnlyToggle, filesList, filesEnabled, handleOnChangeMetadataOnly }) => showMetadataOnlyToggle ?
+  <Checkbox label="Link only — no files to upload" disabled={filesList.length > 0} checked={!filesEnabled} onChange={handleOnChangeMetadataOnly} /> : null;
+
+Object.assign(overriddenComponents, {
+  "InvenioAppRdm.Deposit.RDMDepositForm.layout": FriendlyDepositLayout,
+  "InvenioAppRdm.Deposit.Files.before.container": VisualizationStart,
+  "InvenioAppRdm.Deposit.AccordionFieldFiles.container": VisualizationFiles,
+  "InvenioAppRdm.Deposit.AccordionFieldBasicInformation.container": Essentials,
+  "InvenioAppRdm.Deposit.CustomFields.container": SchemaCustomFields,
+  "InvenioRdmRecords.DepositForm.FileUploaderToolbar.MetadataOnlyToggle": LinkOnlyToggle,
+});

@@ -184,3 +184,36 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+// Visualization-first reading and authoring surfaces.
+.ovf-visualization-stage { margin: 1.5rem 0; }
+.ovf-visualization-stage .preview-iframe { min-height: 480px; }
+.ovf-visualization-stage .preview-container { background: #f8f8fc; }
+.ovf-explore { margin-bottom: 0.75rem !important; }
+.ovf-reading-guide.ui.segment { padding: 1.6rem; border-top: 3px solid @brandColor; }
+.ovf-reading-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+.ovf-reading-grid h3 { font-size: 1rem; }
+.ovf-preserve-lines { white-space: pre-line; overflow-wrap: anywhere; }
+.ovf-reading-share { margin-top: 1.2rem; }
+.ovf-supporting-materials > summary, .ovf-form-details > summary {
+  cursor: pointer; font-weight: 600; padding: 1rem 0; line-height: 1.5;
+}
+.ovf-supporting-materials > summary:focus-visible, .ovf-form-details > summary:focus-visible {
+  outline: 2px solid @brandColor; outline-offset: 4px;
+}
+.ovf-form-intro { padding: 0.5rem 0 1.5rem; }
+.ovf-form-intro h1 { margin-top: 0.4rem; }
+.ovf-step-label { color: @brandColor; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; }
+.ovf-form-context { margin: 2rem 0; }
+.ovf-form-details { border-bottom: 1px solid #e7e7ef; }
+.ovf-form-details-body { padding: 0.25rem 0 1.2rem; }
+.ovf-detail-count { float: right; color: #687084; font-size: 0.85rem; font-weight: 400; }
+.ovf-reader-prompts.ui.segment { background: #f8f8fc; padding: 1.4rem; }
+.ovf-friendly-deposit .field { margin-bottom: 1.5rem; }
+.ovf-friendly-deposit textarea { min-height: 90px; }
+@media only screen and (max-width: 767px) {
+  .ovf-reading-grid { grid-template-columns: 1fr; gap: 0.8rem; }
+  .ovf-visualization-stage .preview-iframe { min-height: 300px; }
+  .ovf-detail-count { float: none; margin-left: 0.7rem; }
+}

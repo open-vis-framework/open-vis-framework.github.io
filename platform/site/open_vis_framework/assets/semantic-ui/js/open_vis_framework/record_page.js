@@ -49,3 +49,17 @@ if (badgePanel) {
     });
   });
 }
+
+
+const contextButton = document.querySelector(".ovf-copy-context");
+if (contextButton) {
+  contextButton.addEventListener("click", async () => {
+    const status = document.querySelector(".ovf-context-copy-status");
+    try {
+      await navigator.clipboard.writeText(contextButton.dataset.contextUrl);
+      status.textContent = "Link copied.";
+    } catch {
+      status.textContent = "Copy this link: " + contextButton.dataset.contextUrl;
+    }
+  });
+}

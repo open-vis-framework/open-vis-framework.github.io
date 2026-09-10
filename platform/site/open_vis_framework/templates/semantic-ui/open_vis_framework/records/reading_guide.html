@@ -1,0 +1,19 @@
+<section id="read-this-chart" class="ui segment ovf-reading-guide" aria-labelledby="ovf-reading-title">
+  <p class="ovf-disclosure-eyebrow">A QUICK READING GUIDE</p>
+  <h2 id="ovf-reading-title">Read this chart</h2>
+  <div class="ovf-reading-grid">
+    {% for card in presentation.cards %}
+      <div>
+        <h3>{{ card.label }}</h3>
+        {% if card.value %}<p class="ovf-preserve-lines">{{ card.value }}</p>
+        {% else %}<p class="text-muted">Not yet documented by the author.</p>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% if not is_preview and record_ui.is_published %}
+    <div class="ovf-reading-share">
+      <button class="ui basic small button ovf-copy-context" type="button" data-context-url="{{ url_for('invenio_app_rdm_records.record_detail', pid_value=record_ui.id, _external=True) }}#read-this-chart">Copy link to this guide</button>
+      <span class="ovf-context-copy-status" role="status" aria-live="polite"></span>
+    </div>
+  {% endif %}
+</section>

@@ -33,7 +33,7 @@ def ui_field(field):
     """Translate one schema entry into Invenio's existing form widgets."""
     level = POLICY[field["id"]]
     props = {
-        "label": field["label"] + " (" + level + ")",
+        "label": field["label"],
         "description": field.get("help", ""),
         "placeholder": field.get("placeholder", ""),
         "required": level == "core" or (
@@ -53,6 +53,8 @@ def ui_field(field):
         "ui_widget": WIDGETS[field["type"]],
         "props": props,
         "visible_when": field.get("visible_when"),
+        "requirement": level,
+        "form_group": field.get("form_group", "context"),
     }
 
 

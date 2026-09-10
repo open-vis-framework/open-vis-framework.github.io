@@ -1,6 +1,37 @@
 {% extends "invenio_app_rdm/records/detail.html" %}
 
 {% block record_content %}
+  {% set presentation = ovf_presentation(record_ui) %}
+  {% if permissions.can_read_files and record_ui.files.enabled %}
+    {% set files_ns.files = files | order_entries | selectattr("status", "==", "completed") | list %}
+    {% if files_ns.files | has_previewable_files %}
+      {% set files_ns.preview_file = files_ns.files | select_preview_file(default_preview=record_ui.files.default_preview) %}
+    {% endif %}
+  {% endif %}
+  <section class="ovf-visualization-stage" aria-label="Visualization">
+    {% if presentation.url %}
+      <a class="ui primary large button ovf-explore" href="{{ presentation.url }}" target="_blank" rel="noopener noreferrer">
+        Explore visualization <i class="external alternate icon" aria-hidden="true"></i>
+      </a>
+      <p class="text-muted">Opens the author’s hosted visualization. Any image below is a preview.</p>
+    {% endif %}
+    {% if files_ns.preview_file %}
+      {{ preview_file_box(files_ns.preview_file, record_ui.id, is_preview, record, include_deleted, display_name=ovf_preview_label) }}
+    {% elif not presentation.url %}
+      <p class="ui message">A visualization preview has not been provided yet.</p>
+    {% endif %}
+  </section>
+  {% include "open_vis_framework/records/reading_guide.html" %}
   {{ super() }}
   {% include "open_vis_framework/records/disclosure_summary.html" %}
 {% endblock record_content %}
+
+{% block record_files %}
+  <details class="ovf-supporting-materials rel-mt-2">
+    <summary>Supporting materials &amp; downloads</summary>
+    {{ super() }}
+  </details>
+{% endblock record_files %}
+
+{# The preview already appears beside the visualization, above the metadata. #}
+{% block record_file_preview %}{% endblock %}

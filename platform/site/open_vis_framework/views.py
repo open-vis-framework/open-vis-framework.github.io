@@ -6,6 +6,7 @@ from flask import Blueprint, Response, abort, current_app, request
 
 from .badges import PublicRecordNotFound, get_badge_state, render_badge_svg
 from .disclosure import build_disclosure_summary
+from .presentation import visualization_presentation
 
 #
 # Registration
@@ -13,6 +14,8 @@ from .disclosure import build_disclosure_summary
 def create_blueprint(app):
     """Register blueprint routes on app."""
     app.jinja_env.globals["ovf_disclosure_summary"] = build_disclosure_summary
+    app.jinja_env.globals["ovf_presentation"] = visualization_presentation
+    app.jinja_env.globals["ovf_preview_label"] = lambda file: "Visualization preview"
     blueprint = Blueprint(
         "open_vis_framework",
         __name__,

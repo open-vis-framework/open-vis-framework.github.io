@@ -70,3 +70,24 @@ Run focused tests from `platform/`:
 ```sh
 PYTHONPATH=site .venv/bin/python -m unittest discover -s site/tests -v
 ```
+
+
+## Author and reader presentation
+
+Each field's `form_group` controls where it appears: `visualization` (the primary
+URL), `essentials` (data sources alongside native controls), `reader` (the three
+reading-guide prompts), or `context` (progressively disclosed sections).
+Requirement policy remains separate. Section counts mean fields filled, not
+verification. Collapsed fields stay mounted and retain their values; sections
+open when their fields have validation errors. Native repository controls remain
+available under Additional publication details. The native uploader's Preview
+selection designates the cover used by the record and generated search thumbnail.
+
+`reader_label` and `reader_fallbacks` configure the public reading guide. Explicit
+answers take precedence over compatible legacy metadata; absent answers say
+Not yet documented. The primary visualization uses the native selected file
+preview and a prominent HTTP(S) hosted-visualization link. Existing file access
+permissions and upload handling remain in force. Supporting downloads are
+collapsed below the reading content. Published pages offer a copyable anchor
+link to the guide; this is the first version of portable context, not an iframe
+embed or a new external hosting service.
