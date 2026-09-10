@@ -5,6 +5,7 @@ from hashlib import sha256
 from flask import Blueprint, Response, abort, current_app, request
 
 from .badges import PublicRecordNotFound, get_badge_state, render_badge_svg
+from .csrf import initialize_page_csrf
 from .disclosure import build_disclosure_summary
 from .presentation import visualization_presentation
 
@@ -21,6 +22,8 @@ def create_blueprint(app):
         __name__,
         template_folder="./templates",
     )
+
+    blueprint.after_app_request(initialize_page_csrf)
 
     @blueprint.get("/badges/records/<record_id>.svg")
     def record_badge(record_id):
