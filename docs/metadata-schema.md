@@ -22,8 +22,7 @@ application policy. It is a candidate schema, not a validated research taxonomy.
 
 ## Implementation and storage
 
-The product is `platform/` (InvenioRDM); `apps/web` is a separate static landing
-site. Previously `custom_fields.py` duplicated backend definitions and form
+The product is `platform/` (InvenioRDM). Previously `custom_fields.py` duplicated backend definitions and form
 controls. It now generates both from the JSON. `metadata_schema.py` loads the
 profile and evaluates publication rules. The existing overridable registry
 renders the generated sections with Invenio's Semantic UI widgets and Formik,

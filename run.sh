@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
-# Sets up (on first run) and starts both apps/web and platform/ for local
-# development: apps/web via `pnpm dev`, platform/ via invenio-cli's local
-# (non-containerized-app) dev flow, its dockerized backend services
-# (db/search/mq/cache) included. Ctrl-C stops both.
+# Sets up (on first run) and starts platform/ for local development via
+# invenio-cli's local (non-containerized-app) dev flow, its dockerized
+# backend services (db/search/mq/cache) included. Ctrl-C stops it.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WEB_DIR="$ROOT_DIR/apps/web"
 PLATFORM_DIR="$ROOT_DIR/platform"
 PLATFORM_PRIVATE="$PLATFORM_DIR/.invenio.private"
 
-for cmd in pnpm uv invenio-cli docker; do
+for cmd in uv invenio-cli docker; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "run.sh: '$cmd' not found on PATH." >&2
     case "$cmd" in
-      pnpm) echo "  Install: corepack enable" >&2 ;;
       uv) echo "  Install: https://docs.astral.sh/uv/" >&2 ;;
       invenio-cli) echo "  Install: pipx install invenio-cli (see platform/README.md)" >&2 ;;
       docker) echo "  Install: Docker Desktop (or equivalent)" >&2 ;;
@@ -27,9 +24,6 @@ if ! docker info >/dev/null 2>&1; then
   echo "run.sh: Docker daemon isn't running. Start Docker Desktop and retry." >&2
   exit 1
 fi
-
-echo "==> apps/web: installing dependencies"
-(cd "$WEB_DIR" && pnpm install)
 
 # invenio-cli's own per-machine state (.invenio.private) is the source of
 # truth for what's already been done on this machine - trust it instead of
@@ -64,10 +58,5 @@ else
   (cd "$PLATFORM_DIR" && invenio-cli services setup)
 fi
 
-echo "==> starting apps/web (pnpm dev) and platform/ (invenio-cli run all)"
-trap 'kill 0' EXIT INT TERM
-
-(cd "$WEB_DIR" && pnpm dev 2>&1 | sed -u 's/^/[web]      /') &
-(cd "$PLATFORM_DIR" && invenio-cli run all 2>&1 | sed -u 's/^/[platform] /') &
-
-wait
+echo "==> starting platform/ (invenio-cli run all)"
+cd "$PLATFORM_DIR" && exec invenio-cli run all

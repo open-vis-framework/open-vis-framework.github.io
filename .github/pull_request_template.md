@@ -2,12 +2,6 @@
 
 <!-- What does this PR change, and why? -->
 
-## Which app(s)
-
-- [ ] apps/web
-- [ ] platform/
-- [ ] packages/* / tooling / CI
-
 ## Checklist
 
-- [ ] `pnpm lint` and `pnpm build` pass locally
+- [ ] `uv run python -m unittest discover -s site/tests -v` passes locally (from `platform/`)
