@@ -67,9 +67,6 @@ logs/
 # Invenio-cli per machine file
 .invenio.private
 
-# Marker written by root run.sh once `invenio-cli services setup` has run
-.dev-initialized
-
 # S3 default bucket location
 data/default/*
 data/.minio.sys

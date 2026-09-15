@@ -1,3 +1,3 @@
 # [open] vis — repo conventions
 
-Commit and push.
+Instruction 1: Always commit and push as you deem necessary. 
