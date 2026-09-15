@@ -1,11 +1,9 @@
-# Production override for docker-compose.full.yml - the real cutover
-# target (open-vis-framework.duckdns.org), replacing apps/platform.
-# See docs/adr/0005-adopt-inveniordm.md and docs/ROADMAP.md Migration
-# Phase 8.
+# Production override for docker-compose.full.yml - the real deploy
+# target (open-vis-framework.duckdns.org), replacing the old apps/platform.
 #
-# KNOWN GAP, accepted deliberately at cutover time (see ROADMAP): this
-# does NOT override SECRET_KEY - still docker-services.yml's CHANGE_ME
-# placeholder. Follow-up work, not blocking this cutover.
+# KNOWN GAP, accepted deliberately: this does NOT override SECRET_KEY -
+# still docker-services.yml's CHANGE_ME placeholder. Follow-up work, not
+# blocking deploys.
 #
 # Usage: docker compose --file docker-compose.full.yml --file docker-compose.prod-override.yml up -d ...
 

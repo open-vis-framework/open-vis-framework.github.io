@@ -23,8 +23,8 @@ import { DisplayPartOfCommunities } from "@js/invenio_app_rdm/components/Display
 // The stock InvenioRDM component (invenio_app_rdm's RecordsResultsListItem.js)
 // never renders an image at all, even though every record's API response
 // already includes real IIIF thumbnail links (result.links.thumbnails)
-// generated from files.default_preview - see docs/ROADMAP.md Migration
-// Phase 9. Inlined here (rather than a separate imported file) because
+// generated from files.default_preview. Inlined here (rather than a
+// separate imported file) because
 // only specific known files (like this one) get collected/symlinked
 // into the webpack build from platform/assets/js/ - arbitrary sibling
 // files under this directory are not automatically picked up.

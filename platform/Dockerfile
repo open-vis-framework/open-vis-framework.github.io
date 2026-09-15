@@ -44,8 +44,7 @@ COPY --from=builder ${INVENIO_INSTANCE_PATH}/static/ ${INVENIO_INSTANCE_PATH}/st
 # isolated `--target builder` build has them; the full multi-stage
 # build sometimes doesn't - root cause not fully nailed down, likely a
 # BuildKit multi-stage cache interaction, not a real invenio_assets
-# bug). This line guarantees correctness regardless. See
-# docs/ROADMAP.md Migration Phase 10.
+# bug). This line guarantees correctness regardless.
 COPY ./static/images/ ${INVENIO_INSTANCE_PATH}/static/images/
 COPY ./docker/uwsgi/ ${INVENIO_INSTANCE_PATH}
 COPY ./invenio.cfg ${INVENIO_INSTANCE_PATH}

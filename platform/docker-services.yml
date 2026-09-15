@@ -49,10 +49,8 @@ services:
       - "POSTGRES_PASSWORD=open-vis-framework"
       - "POSTGRES_DB=open-vis-framework"
     ports:
-      # Host port 5433, not Postgres's default 5432: apps/platform's own
-      # local dev Postgres (see root docker-compose.override.yml) already
-      # binds 5432 on this machine, and both stacks run side by side
-      # during the InvenioRDM migration (see docs/adr/0005-adopt-inveniordm.md).
+      # Host port 5433, not Postgres's default 5432, to avoid clashing with
+      # any other local Postgres already bound to 5432 on this machine.
       # invenio.cfg's SQLALCHEMY_DATABASE_URI must match this port.
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:5433:5432"
     volumes:

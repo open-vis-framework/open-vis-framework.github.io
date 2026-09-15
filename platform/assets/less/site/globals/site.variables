@@ -8,7 +8,7 @@
  * hook, loaded after the base theme so these values win. Kept small on
  * purpose: color + typography + corner radius cascade through nearly
  * every component (nav, buttons, cards, borders) for very little
- * surface area to get wrong. See docs/ROADMAP.md.
+ * surface area to get wrong.
  */
 
 /*--- Brand color: deep indigo (nav bar, accents, borders) instead of

@@ -2,14 +2,14 @@
 
 | Host | IP | OS | Purpose | User |
 |---|---|---|---|---|
-| Production VPS | `89.58.55.170` | Debian 10 "buster" (**EOL** since June 2024 — see `docs/adr/0002-self-hosted-platform.md` / `docs/adr/0003-dockerize-same-server.md`) | Shared box: `platform/` (this project's InvenioRDM instance) + 3 unrelated projects (GeoNet, mlg, romani-project) behind one Traefik instance | `admin` |
+| Production VPS | `89.58.55.170` | Debian 10 "buster" (**EOL** since June 2024) | Shared box: `platform/` (this project's InvenioRDM instance) + 3 unrelated projects (GeoNet, mlg, romani-project) behind one Traefik instance | `admin` |
 
 `platform/` (InvenioRDM) is reachable at
 `https://open-vis-framework.duckdns.org` (free DuckDNS domain — swap for
 a real domain later if desired; DNS is managed via the DuckDNS account,
-see below). As of Migration Phase 8 this replaced the old Next.js
-`apps/platform`, which has been deleted (git history preserves it) —
-same domain, same cert, repointed Traefik router.
+see below). This replaced the old Next.js `apps/platform`, which has
+been deleted (git history preserves it) — same domain, same cert,
+repointed Traefik router.
 
 Runs as 8 Docker containers (`platform-{cache,db,mq,search,web-ui,web-api,worker,scheduler}-1`)
 via `platform/docker-compose.full.yml` + `platform/docker-compose.prod-override.yml`,
@@ -79,11 +79,10 @@ root. Any step needing `sudo` is a manual, human-run step.
 - **Database/cache/mq credentials, `SECRET_KEY`, future OAuth client
   secrets**: currently hardcoded dev-only defaults in
   `platform/docker-services.yml` (`SECRET_KEY` is still the literal
-  `CHANGE_ME` placeholder in production — see `docs/ROADMAP.md`'s
-  Migration Phase 8 entry, a known gap accepted deliberately at cutover
-  time, not yet fixed). No git-ignored `.env` mechanism exists for
-  `platform/` yet the way the old `apps/platform` had one - needed
-  before this is fixed for real.
+  `CHANGE_ME` placeholder in production — a known gap accepted
+  deliberately at cutover time, not yet fixed). No git-ignored `.env`
+  mechanism exists for `platform/` yet the way the old `apps/platform`
+  had one - needed before this is fixed for real.
 
 ## Traefik (shared reverse proxy on the production VPS)
 
@@ -99,8 +98,7 @@ root. Any step needing `sudo` is a manual, human-run step.
   DNS-01 challenge, not Traefik's own ACME resolver — avoids needing a
   Traefik restart, which would affect the other 3 domains). Installed
   cert path: `/home/admin/open-vis-framework/certs/`. **Expires ~Nov
-  2026, no auto-renewal reload hook wired up yet** — flagged as an open
-  follow-up in ADR 0002.
+  2026, no auto-renewal reload hook wired up yet** — an open follow-up.
 
 ## Before making any change on the production VPS
 
