@@ -1,12 +1,3 @@
-# Server & access registry
-
-**This repo is public.** This file documents *metadata only* — what exists,
-what it's for, where the real credentials live. It must never contain an
-actual private key, password, or token. If you're about to paste a secret
-into this file, stop — it goes in a password manager or the relevant
-platform's encrypted secret store instead (see "Where secrets actually
-live" below).
-
 ## Servers
 
 | Host | IP | OS | Purpose | User |
