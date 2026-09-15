@@ -11,14 +11,17 @@ Sheets", browsable and searchable by others.
 apps/web        public landing/docs site → GitHub Pages (this repo's Pages site)
 platform/       the product itself: an InvenioRDM instance → self-hosted server (Docker + Traefik)
 packages/*      shared code, once something needs sharing (empty for now)
-docs/adr/       architecture decision records
 ```
 
-See `docs/adr/0001-monorepo-two-apps.md` for the original repo shape and
-`docs/adr/0005-adopt-inveniordm.md` for why the product moved to
-InvenioRDM. `CLAUDE.md` has conventions for working in this repo.
+`CLAUDE.md` has conventions for working in this repo.
 
 ## Development
+
+`./run.sh` sets up and starts both apps for local dev in one go (needs
+`pnpm`, `uv`, `invenio-cli`, and a running Docker daemon on `PATH`).
+Ctrl-C stops both.
+
+To run either app on its own:
 
 `apps/web`:
 ```
@@ -29,12 +32,10 @@ pnpm build
 pnpm lint
 ```
 
-`platform/`: see `docs/ROADMAP.md`'s "Local dev" section (InvenioRDM's
-own `invenio-cli` tooling, not pnpm).
+`platform/`: InvenioRDM's own `invenio-cli` tooling (not pnpm) — see
+`platform/README.md`.
 
 ## Status
 
-See `docs/ROADMAP.md` for what's done and what's still known-incomplete
-(auth is local-login only for now; chart type still needs a controlled
-multi-value taxonomy before it can be faceted), and
-`CONTRIBUTING.md` for the current state of the contribution workflow.
+Known-incomplete: auth is local-login only for now; chart type still
+needs a controlled multi-value taxonomy before it can be faceted.
